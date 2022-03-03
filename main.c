@@ -25,9 +25,6 @@ int main(int argc, char *argv[]){
 	struct timeval startTime, endTime;
 	gettimeofday(&startTime, NULL);
 	
-	// char oper[10]; // 초기 명령어
-	// scanf("%s", oper);
-	// printf("%s\n", oper);
     ssu_sindex(argc, argv);
 
 	getRuntime(startTime, endTime);
