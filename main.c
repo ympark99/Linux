@@ -7,28 +7,25 @@
 // 프로그램 종료
 void getRuntime(struct timeval startTime, struct timeval endTime){
 	gettimeofday(&endTime, NULL);
-	int runtimeSec = endTime.tv_sec - startTime.tv_sec; // 초 부분 계산
-	// 실행 시간 계산(ms 연산 결과가 마이너스인 경우 고려)	
-	double runtime = runtimeSec + (endTime.tv_usec - startTime.tv_usec) / (double)1000000; 
-	
+	endTime.tv_sec -= startTime.tv_sec; // 초 부분 계산
 
-	// 소수점이 0으로 시작하는 경우를 고려해 문자열로 변환 후 출력
-	char runtimePrint[9];
-	sprintf(runtimePrint, "%f", runtime);
-	runtimePrint[1] = ':'; // 형식에 맞게 변경
-	printf("Prompt End\n");
-	printf("Runtime : %s(sec:usec)\n", runtimePrint);	
+	if(endTime.tv_usec < startTime.tv_usec){ // ms 연산 결과가 마이너스인 경우 고려
+		endTime.tv_sec--;
+		endTime.tv_usec += 1000000;
+	}
+
+	endTime.tv_usec -= startTime.tv_usec;
+	printf("Runtime: %ld:%06d(sec:usec)\n", endTime.tv_sec, endTime.tv_usec);
 }
 
-int main(int argc, char *argv[]){
+int main(){
 	// 프로그램 시간 계산
 	struct timeval startTime, endTime;
 	gettimeofday(&startTime, NULL);
 	
-    ssu_sindex(argc, argv);
+    ssu_sindex();
 
 	getRuntime(startTime, endTime);
-	
-    // exit(0);
+
     return 0;
 }
