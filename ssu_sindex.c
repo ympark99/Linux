@@ -7,18 +7,21 @@
 
 void ssu_sindex(){
 	while (1){	
-		char oper[10]; // 초기 명령어
+		char oper[2000]; // 초기 명령어
+		printf("20182615> ");
 		scanf("%s", oper);
 
 		// exit 입력 시 종료
 		if(strcmp(oper, "exit") == 0){
+			printf("Prompt End\n");
 			break;
 		}
-
+		else if(strcmp(oper, "") == 0){
+			printf("enter!!\n");
+		}
 		// help, 이외 명령어 입력 시 명령어 사용법 출력
-		print_inst(); // 명령어 사용법
+		else print_inst(); // 명령어 사용법
 	}
-
 	return;
 }
 
