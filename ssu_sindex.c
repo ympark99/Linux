@@ -1,7 +1,5 @@
 #include <stdio.h>
-#include <sys/time.h> // gettimeofday 사용
 #include <unistd.h>
-#include <math.h> // floor 사용
 #include <string.h> // string 관련 함수 사용
 #include "ssu_sindex.h"
 
@@ -9,18 +7,18 @@ void ssu_sindex(){
 	while (1){	
 		char oper[2000]; // 초기 명령어
 		printf("20182615> ");
-		scanf("%s", oper);
+		// scanf("%s", oper);
+		// gets(oper);
+		fgets(oper, sizeof(oper), stdin);
 
 		// exit 입력 시 종료
-		if(strcmp(oper, "exit") == 0){
+		if(strcmp(oper, "exit\n") == 0){
 			printf("Prompt End\n");
 			break;
 		}
-		else if(strcmp(oper, "") == 0){
-			printf("enter!!\n");
+		else if(oper[0] != '\n'){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
+			print_inst(); // 명령어 사용법
 		}
-		// help, 이외 명령어 입력 시 명령어 사용법 출력
-		else print_inst(); // 명령어 사용법
 	}
 	return;
 }
