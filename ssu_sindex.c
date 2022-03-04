@@ -5,11 +5,14 @@
 
 void ssu_sindex(){
 	while (1){	
-		char oper[2000]; // 초기 명령어
-		printf("20182615> ");
-		// scanf("%s", oper);
-		// gets(oper);
-		fgets(oper, sizeof(oper), stdin);
+		char oper[1024]; // 초기 명령어
+		printf("20182615> "); // 프롬프트 출력
+		fgets(oper, sizeof(oper), stdin); // 명령어 입력
+
+		// 시작 공백 제거
+		while(oper[0] == ' '){
+			memmove(oper, oper + 1, strlen(oper));
+		}
 
 		// exit 입력 시 종료
 		if(strcmp(oper, "exit\n") == 0){
