@@ -6,9 +6,9 @@
 
 void ssu_sindex(){
 	while (1){	
-		char oper[1024]; // 초기 명령어
+		char oper[OPER_SIZE]; // 초기 명령어
 		printf("20182615> "); // 프롬프트 출력
-		fgets(oper, sizeof(oper), stdin); // 명령어 입력
+		fgets(oper, OPER_SIZE, stdin); // 명령어 입력
 
 		// 시작 공백 제거
 		while(oper[0] == ' '){
@@ -54,19 +54,23 @@ bool isFind(char oper[]){
 }
 
 void find(char oper[]){
-	char *findOper[1024] = {NULL, }; // FILENAME PATH등 find 이후 명령어 저장
+	char *findOper[OPER_SIZE] = {NULL, }; // FILENAME PATH등 find 이후 명령어 저장
 	
 	char *ptr = strtok(oper, " "); // 공백 기준으로 문자열 자르기
 
 	int idx = 0;
 	while (ptr != NULL){
-		findOper[idx] = ptr;
+		if(idx < OPER_SIZE)	findOper[idx] = ptr;
 		idx++;
 		ptr = strtok(NULL, " ");
 	}
 
-	for(int i = 0; i < sizeof(findOper) / sizeof(findOper[0]); i++){
-		if(findOper[i] != NULL)
-			printf("%s\n", findOper[i]);
+	for(int i = 0; i < 10; i++){
+		printf("%s\n", findOper[i]);
+	}
+
+	if(findOper[0] == ' ' || findOper[1] == ' '){
+		printf("error\n");
+		return;
 	}
 }
