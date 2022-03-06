@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <string.h> // string 관련 함수 사용
 #include <stdlib.h> // realpath 사용
+#include <dirent.h> // scandir 사용
+#include <errno.h> // errno 설정
 #include "ssu_sindex.h"
 
 void ssu_sindex(){
@@ -71,14 +73,41 @@ void print_inst(){
 
 // find 함수
 void find(char *findOper[]){
-	// 상대경로인 경우 절대 경로로 변환
+	// 상대경로인 경우 절대경로로 변환
 	if(findOper[2][0] != '/'){
 		char buf[OPER_SIZE];
 		// 절대 경로가 NULL인경우 오류 발생
 		if(realpath(findOper[2], buf) == NULL){
-			perror("realpath error"); // to do :전역변수 errno에 설정
+			perror("realpath error"); // todo : 전역변수 errno에 설정
 			return;
 		}
-		printf("real path is %s\n", buf);
+		printf("%s\n", buf);
+		findOper[2] = buf; // 변환한 절대경로 저장
 	}
+
+	// scandir 관련 선언
+	struct dirent **namelist;
+	int cnt; // return 값
+
+	if((cnt = scandir(findOper[2], &namelist, NULL, alphasort)) == -1){
+		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno)); // todo : errno 설정
+		return;
+	}
+
+	for(int i = 0; i < cnt; i++){
+		// printf("%llu\n", namelist[i]->d_ino);
+		printf("%s\n", namelist[i]->d_name);
+		// printf("%hu\n", namelist[i]->d_namlen);
+		// printf("%hu\n", namelist[i]->d_reclen);
+		// printf("%llu\n", namelist[i]->d_seekoff);
+		// printf("%hhu\n", namelist[i]->d_type);
+		// printf("-------\n");		
+	}
+
+	for(int i = 0; i < cnt; i++){
+		free(namelist[i]);
+	}
+
+	free(namelist);
+
 }
