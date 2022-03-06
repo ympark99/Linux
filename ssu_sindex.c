@@ -33,7 +33,7 @@ void ssu_sindex(){
 				printf("error\n");
 			}
 			else{
-				printf("find!!\n");
+				find(findOper);
 			}
 		}		
 		// exit 입력 시 종료
@@ -67,4 +67,18 @@ void print_inst(){
 	printf("   s : report when two files are the same\n");
 	printf("   i : ignore case differences in file contents\n");
 	printf("   r : recursivly compare any subdirectories found\n");
+}
+
+// find 함수
+void find(char *findOper[]){
+	// 상대경로인 경우 절대 경로로 변환
+	if(findOper[2][0] != '/'){
+		char buf[OPER_SIZE];
+		// 절대 경로가 NULL인경우 오류 발생
+		if(realpath(findOper[2], buf) == NULL){
+			perror("realpath error"); // to do :전역변수 errno에 설정
+			return;
+		}
+		printf("real path is %s\n", buf);
+	}
 }

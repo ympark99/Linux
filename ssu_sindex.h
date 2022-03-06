@@ -9,12 +9,9 @@
     #define FINDOPER_SIZE 3
 #endif
 
-#include <stdbool.h> // bool, true, false 사용
-
 void ssu_sindex();
 void print_inst();
 
-bool isFind(char oper[]);
-void find(char oper[]);
+void find();
 
 #endif
