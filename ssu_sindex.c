@@ -5,29 +5,53 @@
 #include "ssu_sindex.h"
 
 void ssu_sindex(){
-	while (1){	
-		char oper[OPER_SIZE]; // 초기 명령어
+	while (1){
+		char *oper = malloc(sizeof(char) * OPER_SIZE);
 		printf("20182615> "); // 프롬프트 출력
 		fgets(oper, OPER_SIZE, stdin); // 명령어 입력
+		oper[strlen(oper)-1] = '\0'; // 공백 제거
 
 		// 시작 공백 제거
 		while(oper[0] == ' '){
 			memmove(oper, oper + 1, strlen(oper));
 		}
 		
-		// find 명령 시 find함수 실행
-		if(isFind(oper)){
-			memmove(oper, oper + 4, strlen(oper)); // find 문자열 제거
-			find(oper);
+		char *findOper[FINDOPER_SIZE] = {NULL, }; // 명령어 split
+		char *ptr = strtok(oper, " "); // 공백 기준으로 문자열 자르기
+
+		int idx = 0;
+		while (ptr != NULL){
+			if(idx < FINDOPER_SIZE)	findOper[idx] = ptr;
+			idx++;
+			ptr = strtok(NULL, " ");
 		}
+
+		// find 명령 시 find 함수 실행
+		if(findOper[0] != NULL && strcmp(findOper[0], "find") == 0){
+			// 명령어 인자 틀리면 에러 처리
+			if(idx != FINDOPER_SIZE){
+				printf("error\n");
+			}
+			else{
+				printf("find!!\n");
+			}
+		}		
 		// exit 입력 시 종료
-		else if(strcmp(oper, "exit\n") == 0){
-			printf("Prompt End\n");
-			break;
-		}
-		else if(oper[0] != '\n'){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
+		else if(findOper[0] != NULL && strcmp(oper, "exit") == 0){
+			// exit 뒤 인자 붙으면 help와 동일한 결과 출력
+			if(findOper[1] != NULL){
+				print_inst();
+			}
+			else{
+				printf("Prompt End\n");
+				break;
+			}
+		}	
+		else if(findOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
 			print_inst(); // 명령어 사용법
 		}
+
+		free(oper);
 	}
 	return;
 }
@@ -43,34 +67,4 @@ void print_inst(){
 	printf("   s : report when two files are the same\n");
 	printf("   i : ignore case differences in file contents\n");
 	printf("   r : recursivly compare any subdirectories found\n");
-}
-
-// find 명령어 확인 함수
-bool isFind(char oper[]){
-	for(int i = 0; i < 4; i++){
-		if(oper[0] == 'f' && oper[1] == 'i' && oper[2] == 'n' && oper[3] == 'd') return true;
-	}
-	return false;
-}
-
-void find(char oper[]){
-	char *findOper[OPER_SIZE] = {NULL, }; // FILENAME PATH등 find 이후 명령어 저장
-	
-	char *ptr = strtok(oper, " "); // 공백 기준으로 문자열 자르기
-
-	int idx = 0;
-	while (ptr != NULL){
-		if(idx < OPER_SIZE)	findOper[idx] = ptr;
-		idx++;
-		ptr = strtok(NULL, " ");
-	}
-
-	for(int i = 0; i < 10; i++){
-		printf("%s\n", findOper[i]);
-	}
-
-	if(findOper[0] == ' ' || findOper[1] == ' '){
-		printf("error\n");
-		return;
-	}
 }
