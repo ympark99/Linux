@@ -1,5 +1,7 @@
 #include <stdio.h>
-#include <unistd.h>
+#include <sys/types.h> // stat 사용
+#include <sys/stat.h> // stat 사용
+#include <unistd.h> // stat 사용
 #include <string.h> // string 관련 함수 사용
 #include <stdlib.h> // realpath 사용
 #include <dirent.h> // scandir 사용
@@ -88,6 +90,9 @@ void find(char *findOper[]){
 	// scandir 관련 선언
 	struct dirent **namelist;
 	int cnt; // return 값
+	int idx = 0; // 출력할 idx
+
+	struct stat st;
 
 	if((cnt = scandir(findOper[2], &namelist, NULL, alphasort)) == -1){
 		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno)); // todo : errno 설정
@@ -95,13 +100,20 @@ void find(char *findOper[]){
 	}
 
 	for(int i = 0; i < cnt; i++){
-		// printf("%llu\n", namelist[i]->d_ino);
-		printf("%s\n", namelist[i]->d_name);
-		// printf("%hu\n", namelist[i]->d_namlen);
-		// printf("%hu\n", namelist[i]->d_reclen);
-		// printf("%llu\n", namelist[i]->d_seekoff);
-		// printf("%hhu\n", namelist[i]->d_type);
-		// printf("-------\n");		
+		// printf("%s\n", namelist[i]->d_name);
+		// 이름 같은 파일/dir 발견할 경우
+		if(strcmp(findOper[1], namelist[i]->d_name) == 0){
+			// 파일 경로 합치기
+			char *path = strcat(findOper[2], "/");
+			path = strcat(path, namelist[i]->d_name);
+
+			// 파일 정보 얻기
+			if(stat(path, &st) == -1){
+				perror("stat");
+				return;
+			}
+			printf("file size : %lld bytes \n", (long long) st.st_size);
+		}
 	}
 
 	for(int i = 0; i < cnt; i++){
