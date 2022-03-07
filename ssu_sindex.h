@@ -17,8 +17,8 @@ void ssu_sindex();
 void print_inst();
 
 void find();
-void find_files(char *findOper[FINDOPER_SIZE]);
-long long find_info(char *findOper[FINDOPER_SIZE], char *path);
+void find_files(char *findOper[FINDOPER_SIZE], char *fileName, long long fileSize);
+long long find_fileInfo(char *path);
 char *dateFormat(char *str, struct timespec st);
 
 #endif
