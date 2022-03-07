@@ -11,6 +11,9 @@
 #include <time.h> // strftime 사용
 #include "ssu_sindex.h"
 
+// 출력 리스트 구조체 선언
+struct fileLists fileList[LMAX];
+
 void ssu_sindex(){
 	while (1){
 		char *oper = malloc(sizeof(char) * OPER_SIZE);
@@ -78,7 +81,7 @@ void print_inst(){
 
 // find 함수
 void find(char *findOper[FINDOPER_SIZE]){
-	// 상대경로인 경우 절대경로로 변환(FILENAME)
+	// 상대경로인 경우 절대경로로 변환(원본 FILENAME)
 	if(findOper[1][0] != '/'){
 		char buf[OPER_SIZE];
 		// 절대 경로가 NULL인경우 오류 발생
@@ -102,10 +105,11 @@ void find(char *findOper[FINDOPER_SIZE]){
 	}
 
 	printf("Index Size Mode       Blocks Links UID  GID  Access         Change         Modify         Path\n");
-	char *fileName = strrchr(findOper[1], '/'); // / 들어간 마지막 위치 반환
+	get_fileInfo(findOper[1], 0); // 원본 파일(디렉토리) 리스트에 추가
 
+	char *fileName = strrchr(findOper[1], '/'); // / 들어간 마지막 위치 반환
 	long long fileSize = get_fileSize(findOper[1]); // 비교할 파일 크기 저장
-	find_files(findOper, fileName, fileSize, 0); // 디렉토리 탐색 & 리스트 추가
+	find_files(findOper, fileName, fileSize, 1); // PATH부터 디렉토리 탐색 & 리스트 추가
 
 }
 
@@ -132,7 +136,7 @@ void find_files(char *findOper[FINDOPER_SIZE], char *fileName, long long fileSiz
 
 			// 파일 크기 같으면 리스트 등록
 			if(fileSize == get_fileSize(path)){
-				get_fileInfo(path, 0);
+				get_fileInfo(path, idx); // 파일 정보 가져오기
 			};
 		}
 		free(cmpFileName);
@@ -158,7 +162,7 @@ long long get_fileSize(char *path){
 	return (long long) st.st_size;
 }
 
-// 파일 정보 탐색
+// 파일 정보 리스트에 저장
 void get_fileInfo(char *path, int idx){
 	struct stat st;
 
@@ -168,19 +172,43 @@ void get_fileInfo(char *path, int idx){
 		return;
 	}
 
-	printf("%d     ", idx);
-	printf("%lld   ", (long long) st.st_size); // 파일 크기
-	printf("%hu      ", st.st_mode); // 모드
-	printf("%lld      ", st.st_blocks); // 할당된 블록 수
-	printf("%hu     ", st.st_nlink); // 하드링크
-	printf("%u  ", st.st_uid); // 사용자id
-	printf("%u   ", st.st_gid); // 그룹id
-
 	char date[DATEFORMAT_SIZE];
-	printf("%s ", dateFormat(date, st.st_atimespec)); // 최종 접근 시간
-	printf("%s ", dateFormat(date, st.st_ctimespec)); // 최종 상태 변경 시간
-	printf("%s ", dateFormat(date, st.st_mtimespec)); // 최종 수정 시간
-	printf("%s\n", path);
+
+	fileList[idx].idx = idx;
+	fileList[idx].size = (long long) st.st_size;
+	fileList[idx].mode = st.st_mode;
+	fileList[idx].blocks = st.st_blocks;
+	fileList[idx].links = st.st_nlink;
+	fileList[idx].uid = st.st_uid;
+	fileList[idx].gid = st.st_gid;
+	fileList[idx].access = dateFormat(date, st.st_atimespec);
+	fileList[idx].change = dateFormat(date, st.st_atimespec);
+	fileList[idx].modify = dateFormat(date, st.st_atimespec);
+	fileList[idx].path = path;
+
+	printf("%d     ", fileList[idx].idx);
+	printf("%lld   ", fileList[idx].size); // 파일 크기
+	printf("%d      ", fileList[idx].mode); // 모드
+	printf("%lld      ", fileList[idx].blocks); // 할당된 블록 수
+	printf("%d     ", fileList[idx].links); // 하드링크
+	printf("%d  ", fileList[idx].uid); // 사용자id
+	printf("%d   ", fileList[idx].gid); // 그룹id
+	printf("%s ", fileList[idx].access); // 최종 접근 시간
+	printf("%s ", fileList[idx].change); // 최종 상태 변경 시간
+	printf("%s ", fileList[idx].modify); // 최종 수정 시간
+	printf("%s\n", fileList[idx].path);
+
+	// printf("%d     ", idx);
+	// printf("%lld   ", (long long) st.st_size); // 파일 크기
+	// printf("%d      ", st.st_mode); // 모드
+	// printf("%lld      ", st.st_blocks); // 할당된 블록 수
+	// printf("%d     ", st.st_nlink); // 하드링크
+	// printf("%d  ", st.st_uid); // 사용자id
+	// printf("%d   ", st.st_gid); // 그룹id
+	// printf("%s ", dateFormat(date, st.st_atimespec)); // 최종 접근 시간
+	// printf("%s ", dateFormat(date, st.st_ctimespec)); // 최종 상태 변경 시간
+	// printf("%s ", dateFormat(date, st.st_mtimespec)); // 최종 수정 시간
+	// printf("%s\n", path);
 
 	// printf("size : %lld bytes \n", (long long) st.st_size); // 파일 크기
 	// printf("mode : %hu\n", st.st_mode); // 모드

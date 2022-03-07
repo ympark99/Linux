@@ -13,6 +13,22 @@
     #define DATEFORMAT_SIZE 36
 #endif
 
+#define LMAX 100
+
+struct fileLists{
+	int idx;
+	long long size;
+	int mode;
+	long long blocks;
+    int links;
+	int uid;
+	int gid;
+	char *access;
+	char *change;
+	char *modify;
+	char *path;
+};
+
 void ssu_sindex();
 void print_inst();
 
