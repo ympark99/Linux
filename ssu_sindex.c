@@ -124,10 +124,10 @@ void find_Info(char *findOper[FINDOPER_SIZE]){
 			printf("GID : %u\n", st.st_gid); // 그룹id
 			printf("UID : %u\n", st.st_uid); // 사용자id
 
-			char date[36];
-			printf("access : %s\n", dateFormat(date, localtime(&st.st_atimespec))); // 최종 접근 시간
-			printf("change : %s\n", dateFormat(date, localtime(&st.st_ctimespec))); // 최종 상태 변경 시간
-			printf("modify : %s\n", dateFormat(date, localtime(&st.st_mtimespec))); // 최종 수정 시간
+			char date[DATEFORMAT_SIZE];
+			printf("access : %s\n", dateFormat(date, st.st_atimespec)); // 최종 접근 시간
+			printf("change : %s\n", dateFormat(date, st.st_ctimespec)); // 최종 상태 변경 시간
+			printf("modify : %s\n", dateFormat(date, st.st_mtimespec)); // 최종 수정 시간
 			printf("path : %s\n", path); // 절대경로
 		}
 	}
@@ -139,8 +139,9 @@ void find_Info(char *findOper[FINDOPER_SIZE]){
 	free(namelist);
 }
 
-char* dateFormat(char * str, const struct tm *stTime){
-	// printf("%d-%d-%d %d:%d\n", stTime->tm_year, stTime->tm_mon, stTime->tm_mday, stTime->tm_hour, stTime->tm_min);
-	strftime(str, 30, "%y-%m-%d %H:%M", stTime);
+// 시간 정보 포맷에 맞게 변환
+char *dateFormat(char * str, struct timespec st){
+	const struct tm *stTime = localtime((const time_t *) &st);
+	strftime(str, DATEFORMAT_SIZE, "%y-%m-%d %H:%M", stTime);
 	return str;
 }

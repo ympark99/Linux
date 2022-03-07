@@ -9,11 +9,15 @@
     #define FINDOPER_SIZE 3
 #endif
 
+#ifndef DATEFORMAT_SIZE
+    #define DATEFORMAT_SIZE 36
+#endif
+
 void ssu_sindex();
 void print_inst();
 
 void find();
 void find_Info(char *findOper[FINDOPER_SIZE]);
-char *dateFormat(char *str, const struct tm *stTime);
+char *dateFormat(char *str, struct timespec st);
 
 #endif
