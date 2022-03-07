@@ -13,5 +13,7 @@ void ssu_sindex();
 void print_inst();
 
 void find();
+void find_Info(char *findOper[FINDOPER_SIZE]);
+char *dateFormat(char *str, const struct tm *stTime);
 
 #endif

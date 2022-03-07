@@ -6,6 +6,7 @@
 #include <stdlib.h> // realpath 사용
 #include <dirent.h> // scandir 사용
 #include <errno.h> // errno 설정
+#include <time.h> // strftime 사용
 #include "ssu_sindex.h"
 
 void ssu_sindex(){
@@ -74,7 +75,7 @@ void print_inst(){
 }
 
 // find 함수
-void find(char *findOper[]){
+void find(char *findOper[FINDOPER_SIZE]){
 	// 상대경로인 경우 절대경로로 변환
 	if(findOper[2][0] != '/'){
 		char buf[OPER_SIZE];
@@ -87,10 +88,14 @@ void find(char *findOper[]){
 		findOper[2] = buf; // 변환한 절대경로 저장
 	}
 
+	find_Info(findOper); // 파일 정보 탐색
+
+}
+
+void find_Info(char *findOper[FINDOPER_SIZE]){
 	// scandir 관련 선언
 	struct dirent **namelist;
 	int cnt; // return 값
-	int idx = 0; // 출력할 idx
 
 	struct stat st;
 
@@ -100,7 +105,6 @@ void find(char *findOper[]){
 	}
 
 	for(int i = 0; i < cnt; i++){
-		// printf("%s\n", namelist[i]->d_name);
 		// 이름 같은 파일/dir 발견할 경우
 		if(strcmp(findOper[1], namelist[i]->d_name) == 0){
 			// 파일 경로 합치기
@@ -113,6 +117,18 @@ void find(char *findOper[]){
 				return;
 			}
 			printf("file size : %lld bytes \n", (long long) st.st_size);
+			printf("mode : %hu\n", st.st_mode); // 모드
+			printf("block : %lld\n", st.st_blocks); // 할당된 블록 수
+			printf("hardlink : %hu\n", st.st_nlink); // 하드링크
+			printf("UID : %u\n", st.st_uid); // 사용자id
+			printf("GID : %u\n", st.st_gid); // 그룹id
+			printf("UID : %u\n", st.st_uid); // 사용자id
+
+			char date[36];
+			printf("access : %s\n", dateFormat(date, localtime(&st.st_atimespec))); // 최종 접근 시간
+			printf("change : %s\n", dateFormat(date, localtime(&st.st_ctimespec))); // 최종 상태 변경 시간
+			printf("modify : %s\n", dateFormat(date, localtime(&st.st_mtimespec))); // 최종 수정 시간
+			printf("path : %s\n", path); // 절대경로
 		}
 	}
 
@@ -121,5 +137,10 @@ void find(char *findOper[]){
 	}
 
 	free(namelist);
+}
 
+char* dateFormat(char * str, const struct tm *stTime){
+	// printf("%d-%d-%d %d:%d\n", stTime->tm_year, stTime->tm_mon, stTime->tm_mday, stTime->tm_hour, stTime->tm_min);
+	strftime(str, 30, "%y-%m-%d %H:%M", stTime);
+	return str;
 }
