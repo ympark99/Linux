@@ -101,16 +101,16 @@ void find(char *findOper[FINDOPER_SIZE]){
 		findOper[2] = buf; // 변환한 절대경로 저장
 	}
 
+	printf("Index Size Mode       Blocks Links UID  GID  Access         Change         Modify         Path\n");
 	char *fileName = strrchr(findOper[1], '/'); // / 들어간 마지막 위치 반환
-	// printf("file name : %s\n", fileName);
 
-	long long fileSize = find_fileInfo(findOper[1]); // 비교할 파일 크기 저장
-	find_files(findOper, fileName, fileSize); // 디렉토리 탐색 & 리스트 추가
+	long long fileSize = get_fileSize(findOper[1]); // 비교할 파일 크기 저장
+	find_files(findOper, fileName, fileSize, 0); // 디렉토리 탐색 & 리스트 추가
 
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색
-void find_files(char *findOper[FINDOPER_SIZE], char *fileName, long long fileSize){
+void find_files(char *findOper[FINDOPER_SIZE], char *fileName, long long fileSize, int idx){
 	// scandir 관련 선언
 	struct dirent **namelist;
 	int cnt; // return 값
@@ -119,7 +119,7 @@ void find_files(char *findOper[FINDOPER_SIZE], char *fileName, long long fileSiz
 		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno)); // todo : errno 설정
 		return;
 	}
-
+	// 전체 목록 search
 	for(int i = 0; i < cnt; i++){
 		char *cmpFileName = malloc(sizeof(char) * OPER_SIZE); // strcat 위한 충분한 사이즈 할당
 		strcpy(cmpFileName, "/"); // fileName 앞에 / 붙어있으므로
@@ -129,16 +129,12 @@ void find_files(char *findOper[FINDOPER_SIZE], char *fileName, long long fileSiz
 			// 파일 경로 합치기
 			char *path = strcat(findOper[2], "/");
 			path = strcat(path, namelist[i]->d_name);
-			printf("이름 같은 파일 발견!! %s\n", path);
 
-			printf("비교 파일 크기 : %lld\n", find_fileInfo(path));
 			// 파일 크기 같으면 리스트 등록
-			if(fileSize == find_fileInfo(path)){
-				printf("크기까지 같다!\n");
+			if(fileSize == get_fileSize(path)){
+				get_fileInfo(path, 0);
 			};
-
 		}
-
 		free(cmpFileName);
 	}
 
@@ -149,8 +145,8 @@ void find_files(char *findOper[FINDOPER_SIZE], char *fileName, long long fileSiz
 	free(namelist);	
 }
 
-// 파일 정보 탐색
-long long find_fileInfo(char *path){
+// 파일 크기 리턴
+long long get_fileSize(char *path){
 	struct stat st;
 
 	// 파일 정보 얻기
@@ -158,70 +154,46 @@ long long find_fileInfo(char *path){
 		perror("stat error");
 		return -1;
 	}
+
+	return (long long) st.st_size;
+}
+
+// 파일 정보 탐색
+void get_fileInfo(char *path, int idx){
+	struct stat st;
+
+	// 파일 정보 얻기
+	if(stat(path, &st) == -1){
+		perror("stat error");
+		return;
+	}
+
+	printf("%d     ", idx);
+	printf("%lld   ", (long long) st.st_size); // 파일 크기
+	printf("%hu      ", st.st_mode); // 모드
+	printf("%lld      ", st.st_blocks); // 할당된 블록 수
+	printf("%hu     ", st.st_nlink); // 하드링크
+	printf("%u  ", st.st_uid); // 사용자id
+	printf("%u   ", st.st_gid); // 그룹id
+
+	char date[DATEFORMAT_SIZE];
+	printf("%s ", dateFormat(date, st.st_atimespec)); // 최종 접근 시간
+	printf("%s ", dateFormat(date, st.st_ctimespec)); // 최종 상태 변경 시간
+	printf("%s ", dateFormat(date, st.st_mtimespec)); // 최종 수정 시간
+	printf("%s\n", path);
+
 	// printf("size : %lld bytes \n", (long long) st.st_size); // 파일 크기
 	// printf("mode : %hu\n", st.st_mode); // 모드
 	// printf("block : %lld\n", st.st_blocks); // 할당된 블록 수
 	// printf("hardlink : %hu\n", st.st_nlink); // 하드링크
 	// printf("UID : %u\n", st.st_uid); // 사용자id
 	// printf("GID : %u\n", st.st_gid); // 그룹id
-	// printf("UID : %u\n", st.st_uid); // 사용자id
 
 	// char date[DATEFORMAT_SIZE];
 	// printf("access : %s\n", dateFormat(date, st.st_atimespec)); // 최종 접근 시간
 	// printf("change : %s\n", dateFormat(date, st.st_ctimespec)); // 최종 상태 변경 시간
 	// printf("modify : %s\n", dateFormat(date, st.st_mtimespec)); // 최종 수정 시간
-
-	return (long long) st.st_size;
 }
-
-/*
-void find_fileInfo(char *findOper[FINDOPER_SIZE]){
-	// scandir 관련 선언
-	struct dirent **namelist;
-	int cnt; // return 값
-
-	struct stat st;
-
-	if((cnt = scandir(findOper[2], &namelist, NULL, alphasort)) == -1){
-		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno)); // todo : errno 설정
-		return;
-	}
-
-	for(int i = 0; i < cnt; i++){
-		// 이름 같은 파일/dir 발견할 경우
-		if(strcmp(findOper[1], namelist[i]->d_name) == 0){
-			// 파일 경로 합치기
-			char *path = strcat(findOper[2], "/");
-			path = strcat(path, namelist[i]->d_name);
-
-			// 파일 정보 얻기
-			if(stat(path, &st) == -1){
-				perror("stat");
-				return;
-			}
-			printf("file size : %lld bytes \n", (long long) st.st_size);
-			printf("mode : %hu\n", st.st_mode); // 모드
-			printf("block : %lld\n", st.st_blocks); // 할당된 블록 수
-			printf("hardlink : %hu\n", st.st_nlink); // 하드링크
-			printf("UID : %u\n", st.st_uid); // 사용자id
-			printf("GID : %u\n", st.st_gid); // 그룹id
-			printf("UID : %u\n", st.st_uid); // 사용자id
-
-			char date[DATEFORMAT_SIZE];
-			printf("access : %s\n", dateFormat(date, st.st_atimespec)); // 최종 접근 시간
-			printf("change : %s\n", dateFormat(date, st.st_ctimespec)); // 최종 상태 변경 시간
-			printf("modify : %s\n", dateFormat(date, st.st_mtimespec)); // 최종 수정 시간
-			printf("path : %s\n", path); // 절대경로
-		}
-	}
-
-	for(int i = 0; i < cnt; i++){
-		free(namelist[i]);
-	}
-
-	free(namelist);
-}
-*/
 
 // 시간 정보 포맷에 맞게 변환
 char *dateFormat(char * str, struct timespec st){
