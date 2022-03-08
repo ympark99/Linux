@@ -23,9 +23,9 @@ struct fileLists{
     int links;
 	int uid;
 	int gid;
-	char access[1024];
-	char change[1024];
-	char modify[1024];
+	char access[DATEFORMAT_SIZE];
+	char change[DATEFORMAT_SIZE];
+	char modify[DATEFORMAT_SIZE];
 	char *path;
 };
 
@@ -33,10 +33,10 @@ void ssu_sindex();
 void print_inst();
 
 void find_first();
-void dfs_findMatchFiles(char *findOper, char *fileName, long long fileSize, int idx);
+void dfs_findMatchFiles(char *findOper, char *fileName, long long fileSize);
 long long get_fileSize(char *path);
-void save_fileInfo(char *path, int idx);
-void print_fileInfo(int idx);
+void save_fileInfo(char *path);
+void print_fileInfo();
 char *dateFormat(char *str, struct timespec st);
 
 #endif
