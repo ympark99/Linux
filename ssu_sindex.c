@@ -58,8 +58,9 @@ void ssu_sindex(){
 		else if(findOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
 			print_inst(); // 명령어 사용법
 		}
-		//todo : 탐색결과 없으면 (None) 출력
 		//todo : fileList, listIdx 초기화
+		memset(&fileList, 0, sizeof(struct fileLists));
+		listIdx = 0;
 		free(oper);
 	}
 	return;
@@ -121,7 +122,11 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 		return;
 	}
 	free(namelist);
+
 	dfs_findMatchFiles(findOper[2], fileName, fileSize); // PATH부터 디렉토리 탐색 & 리스트 저장
+
+	//todo : 탐색결과 없으면 (None) 출력
+	if(listIdx == 1) printf("(None)\n");
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
@@ -135,7 +140,7 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 	if((cnt = scandir(cmpPath, &namelist, scandirFilter, alphasort)) == -1){
 		return;
 	}
-	// 전체 목록 search
+	// 전체 목록 search & dfs
 	for(int i = 0; i < cnt; i++){
 		// printf("%s\n", namelist[i]->d_name);
 		// cmpPath : 비교파일절대경로/하위파일명 으로 합치기
@@ -173,7 +178,6 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 	}
 	free(namelist);
 
-	// 배열에 저장한 파일들 하나씩 실행
 	return;
 }
 
