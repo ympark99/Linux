@@ -15,6 +15,8 @@
 
 #define LMAX 100
 
+#include <dirent.h>
+
 struct fileLists{
 	int idx;
 	long long size;
@@ -33,7 +35,8 @@ void ssu_sindex();
 void print_inst();
 
 void find_first();
-void dfs_findMatchFiles(char *findOper, char *fileName, long long fileSize);
+void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize);
+int scandirFilter(const struct dirent *info);
 long long get_fileSize(char *path);
 void save_fileInfo(char *path);
 void print_fileInfo();

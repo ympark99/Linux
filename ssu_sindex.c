@@ -58,7 +58,8 @@ void ssu_sindex(){
 		else if(findOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
 			print_inst(); // 명령어 사용법
 		}
-
+		//todo : 탐색결과 없으면 (None) 출력
+		//todo : fileList, listIdx 초기화
 		free(oper);
 	}
 	return;
@@ -108,7 +109,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	listIdx++;
 
 	char *fileName = strrchr(findOper[1], '/'); // / 들어간 마지막 위치 반환
-	long long fileSize = get_fileSize(findOper[1]); // 비교할 파일 크기 저장
+	long long fileSize = get_fileSize(findOper[1]); // 원본 파일 크기 저장
 
 	// 최초입력 PATH 에러 검사
 	struct dirent **namelist; // scandir 관련 선언
@@ -119,30 +120,27 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno)); // todo : errno 설정
 		return;
 	}
-	// printf("%s\n", namelist[0]->d_name);
 	free(namelist);
 	dfs_findMatchFiles(findOper[2], fileName, fileSize); // PATH부터 디렉토리 탐색 & 리스트 저장
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
-// 비교 파일 절대경로, / + 원본 파일 이름, 파일크기
-void dfs_findMatchFiles(char *comparePath, char *fileName, long long fileSize){
+// 비교 파일 절대경로, / + 원본 파일 이름, 원본 파일크기
+void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 	// scandir 관련 선언
 	struct dirent **namelist;
 	int cnt; // return 값
 
 	// dfs -> 디렉토리 아닐 경우 리턴
-	if((cnt = scandir(comparePath, &namelist, NULL, alphasort)) == -1){
+	if((cnt = scandir(cmpPath, &namelist, scandirFilter, alphasort)) == -1){
 		return;
 	}
 	// 전체 목록 search
 	for(int i = 0; i < cnt; i++){
-		// path : 비교파일절대경로/하위파일명 으로 합친 문자열
-		char *path = malloc(sizeof(char) * BUF_SIZE);
-		// char *path = strcat(comparePath, "/");
-		strcpy(path, comparePath);
-		path = strcat(path, "/");
-		path = strcat(path, namelist[i]->d_name);	
+		// printf("%s\n", namelist[i]->d_name);
+		// cmpPath : 비교파일절대경로/하위파일명 으로 합치기
+		strcat(cmpPath, "/");
+		strcat(cmpPath, namelist[i]->d_name);
 
 		// cmpFileName : d_name 앞에 / 붙여준 문자열
 		char *cmpFileName = malloc(sizeof(char) * BUF_SIZE); // strcat 위한 충분한 사이즈 할당
@@ -151,16 +149,23 @@ void dfs_findMatchFiles(char *comparePath, char *fileName, long long fileSize){
 		// 이름 같은 파일/dir 발견할 경우
 		if(strcmp(fileName, strcat(cmpFileName, namelist[i]->d_name)) == 0){
 			// 파일/dir 크기 같으면 리스트 등록
-			if(fileSize == get_fileSize(path)){
-				save_fileInfo(path); // 리스트에 등록
+			if(fileSize == get_fileSize(cmpPath)){
+				save_fileInfo(cmpPath); // 리스트에 등록
 				print_fileInfo();
 				listIdx++;
 			};
 		}
-		// dfs해주기
-		// dfs_findMatchFiles(path, fileName, fileSize);
-		free(path);
 		free(cmpFileName);
+
+		dfs_findMatchFiles(cmpPath, fileName, fileSize); // dfs
+
+		// 합쳤던 문자열 제거
+		char ch[BUF_SIZE] = "/";
+		strcat(ch, namelist[i]->d_name);
+		char* ptr = strstr(cmpPath, ch); // 합쳤던 /하위파일명 인덱스 탐색
+		if(ptr){
+			strncpy(ptr, "", 1); // 합쳤던 문자열 제거
+		}
 	}
 
 	for(int i = 0; i < cnt; i++){
@@ -170,6 +175,14 @@ void dfs_findMatchFiles(char *comparePath, char *fileName, long long fileSize){
 
 	// 배열에 저장한 파일들 하나씩 실행
 	return;
+}
+
+// scandir 필터(. 과 .. 제거)
+int scandirFilter(const struct dirent *info){
+	if(strcmp(info->d_name, ".") == 0 || strcmp(info->d_name, "..") == 0){
+		return 0; // .이나 .. 이면 filter
+	}
+	else return 1;
 }
 
 // 파일 크기 리턴
