@@ -142,7 +142,6 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 	}
 	// 전체 목록 search & dfs
 	for(int i = 0; i < cnt; i++){
-		// printf("%s\n", namelist[i]->d_name);
 		// cmpPath : 비교파일절대경로/하위파일명 으로 합치기
 		strcat(cmpPath, "/");
 		strcat(cmpPath, namelist[i]->d_name);
@@ -164,10 +163,9 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 
 		dfs_findMatchFiles(cmpPath, fileName, fileSize); // dfs
 
-		// 합쳤던 문자열 제거
-		char ch[BUF_SIZE] = "/";
-		strcat(ch, namelist[i]->d_name);
-		char* ptr = strstr(cmpPath, ch); // 합쳤던 /하위파일명 인덱스 탐색
+		// 합쳤던 하위파일명 문자열 제거
+		char* ptr = strrchr(cmpPath, '/'); // 합쳤던 /하위파일명 포인터 연결
+		// printf("ptr : %s\n", ptr);
 		if(ptr){
 			strncpy(ptr, "", 1); // 합쳤던 문자열 제거
 		}
