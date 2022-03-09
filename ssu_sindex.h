@@ -13,6 +13,10 @@
     #define DATEFORMAT_SIZE 36
 #endif
 
+#ifndef MODE_SIZE
+    #define MODE_SIZE 11
+#endif
+
 #define LMAX 100
 
 #include <dirent.h>
@@ -20,7 +24,7 @@
 struct fileLists{
 	int idx;
 	long long size;
-	int mode;
+	char mode[MODE_SIZE];
 	long long blocks;
     int links;
 	int uid;

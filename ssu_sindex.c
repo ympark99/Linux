@@ -58,7 +58,7 @@ void ssu_sindex(){
 		else if(findOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
 			print_inst(); // 명령어 사용법
 		}
-		//todo : fileList, listIdx 초기화
+		// fileList, listIdx 초기화
 		memset(&fileList, 0, sizeof(struct fileLists));
 		listIdx = 0;
 		free(oper);
@@ -125,7 +125,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 
 	dfs_findMatchFiles(findOper[2], fileName, fileSize); // PATH부터 디렉토리 탐색 & 리스트 저장
 
-	//todo : 탐색결과 없으면 (None) 출력
+	// 탐색결과 없으면 (None) 출력
 	if(listIdx == 1) printf("(None)\n");
 }
 
@@ -150,7 +150,7 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 		// cmpFileName : d_name 앞에 / 붙여준 문자열
 		char *cmpFileName = malloc(sizeof(char) * BUF_SIZE); // strcat 위한 충분한 사이즈 할당
 		strcpy(cmpFileName, "/"); // fileName 앞에 / 붙어있으므로
-		
+
 		// 이름 같은 파일/dir 발견할 경우
 		if(strcmp(fileName, strcat(cmpFileName, namelist[i]->d_name)) == 0){
 			// 파일/dir 크기 같으면 리스트 등록
@@ -212,11 +212,46 @@ void save_fileInfo(char *path){
 		return;
 	}
 
-	char date[DATEFORMAT_SIZE];
+	// st_mode 데이터 형식 rwx형태로 변경
+	char mode2str[MODE_SIZE]; // 저장될 문자열
+	int idx = 0;
+
+	// 파일 형식
+	switch (st.st_mode & S_IFMT){
+		case S_IFREG:
+			mode2str[idx++] = '-';
+			break;
+		case S_IFDIR:
+			mode2str[idx++] = 'd';
+			break;	
+		case S_IFIFO:
+			mode2str[idx++] = 'p';
+			break;
+		case S_IFLNK:
+			mode2str[idx++] = 'l';
+			break;
+	}
+	for(int i = 0; i < 3; i++){ // 파일 접근 권한
+		if(st.st_mode & (S_IREAD >> i * 3))
+			mode2str[idx++] = 'r';
+		else 
+			mode2str[idx++] = '-';
+		if(st.st_mode & (S_IWRITE >> i * 3))
+			mode2str[idx++] = 'w';
+		else 
+			mode2str[idx++] = '-';
+		if(st.st_mode & (S_IEXEC >> i * 3))
+			mode2str[idx++] = 'x';
+		else 
+			mode2str[idx++] = '-';
+	}
+	mode2str[idx] = '\0';
+
+	char date[DATEFORMAT_SIZE]; // 저장될 시간 정보
 
 	fileList[listIdx].idx = listIdx;
 	fileList[listIdx].size = (long long) st.st_size;
-	fileList[listIdx].mode = st.st_mode;
+	strcpy(fileList[listIdx].mode, mode2str);
 	fileList[listIdx].blocks = st.st_blocks;
 	fileList[listIdx].links = st.st_nlink;
 	fileList[listIdx].uid = st.st_uid;
@@ -240,7 +275,7 @@ void save_fileInfo(char *path){
 void print_fileInfo(){
 	printf("%d     ", fileList[listIdx].idx);
 	printf("%lld   ", fileList[listIdx].size); // 파일 크기
-	printf("%d      ", fileList[listIdx].mode); // 모드
+	printf("%s ", fileList[listIdx].mode); // 모드
 	printf("%lld      ", fileList[listIdx].blocks); // 할당된 블록 수
 	printf("%d     ", fileList[listIdx].links); // 하드링크
 	printf("%d  ", fileList[listIdx].uid); // 사용자id
