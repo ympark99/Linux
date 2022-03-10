@@ -42,6 +42,7 @@ void find_first();
 void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize);
 int scandirFilter(const struct dirent *info);
 long long get_fileSize(char *path);
+int check_fileOrDir(char*path, int fileOrDir);
 void save_fileInfo(char *path);
 void print_fileInfo();
 char *dateFormat(char *str, struct timespec st);

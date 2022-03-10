@@ -8,6 +8,7 @@
 #include <errno.h> // errno 설정
 #include <time.h> // strftime 사용
 #include "ssu_sindex.h"
+#include "option.h"
 
 struct fileLists fileList[LMAX]; // 출력 리스트 구조체 선언
 int listIdx = 0; // 출력 리스트 index
@@ -81,6 +82,8 @@ void print_inst(){
 
 // find 함수
 void find_first(char *findOper[FINDOPER_SIZE]){
+	int fileOrDir = 0; // 1 : 파일, 2 : 디렉토리
+
 	// 상대경로인 경우 절대경로로 변환(원본 FILENAME)
 	if(findOper[1][0] != '/'){
 		char buf[BUF_SIZE];
@@ -90,7 +93,6 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 			return;
 		}
 		findOper[1] = buf; // 변환한 절대경로 저장
-
 	}
 	// 상대경로인 경우 절대경로로 변환(PATH)
 	if(findOper[2][0] != '/'){
@@ -100,12 +102,12 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 			perror("realpath error -> path"); // todo : 전역변수 errno에 설정
 			return;
 		}
-		printf("%s\n", buf);
 		findOper[2] = buf; // 변환한 절대경로 저장
 	}
 
 	printf("Index Size Mode       Blocks Links UID  GID  Access         Change         Modify         Path\n");
-	save_fileInfo(findOper[1]); // 원본 파일(디렉토리) 리스트에 저장	
+	save_fileInfo(findOper[1]); // 원본 파일(디렉토리) 리스트에 저장
+	fileOrDir = check_fileOrDir(findOper[1], fileOrDir); // 파일형식 저장
 	print_fileInfo(); // 리스트 출력
 	listIdx++;
 
@@ -127,6 +129,9 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 
 	// 탐색결과 없으면 (None) 출력
 	if(listIdx == 1) printf("(None)\n");
+
+	// listIdx > 1이면 출력 후 옵션함수 실행
+	option(fileOrDir);
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
@@ -198,6 +203,33 @@ long long get_fileSize(char *path){
 	}
 
 	return (long long) st.st_size;
+}
+
+int check_fileOrDir(char*path, int fileOrDir){
+	struct stat st;
+
+	// 파일 정보 얻기
+	if(stat(path, &st) == -1){
+		perror("stat error");
+		return;
+	}
+
+	// 파일 형식
+	switch (st.st_mode & S_IFMT){
+		case S_IFREG:
+			fileOrDir = 1;
+			break;
+		case S_IFDIR:
+			fileOrDir = 2;
+			break;	
+		case S_IFIFO:
+			fileOrDir = 0;
+			break;
+		case S_IFLNK:
+			fileOrDir = 0;
+			break;
+	}
+	return fileOrDir;
 }
 
 // 파일 정보 리스트에 저장
