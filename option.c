@@ -1,9 +1,10 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include "option.h"
 
-void option(int fileOrDir, struct fileLists *fileList){
+void option(int fileOrDir, struct fileLists *fileList, int listSize){
 	while(1){
         printf(">> ");
 
@@ -30,23 +31,38 @@ void option(int fileOrDir, struct fileLists *fileList){
 
 		// INDEX 입력 없을 경우
 		if(index_option[0] == NULL){
-			perror("index 입력이 없거나 존재x");
-		}
-		else if(index_option[1] != NULL){ // 옵션 있는 경우
-
+			perror("index 입력이 없음");
 		}
 		else{
-			if(fileOrDir == 1){ // 파일인 경우
-				cmp_file(index_option);
-				break;
+			int idx = atoi(index_option[0]);
+			if(idx > listSize - 1 || idx == 0){ // 입력 INDEX가 배열 초과할 경우 에러
+				perror("index 존재 x");
 			}
+			else if(index_option[1] != NULL){ // 옵션 있는 경우
 
-			break;
+			}
+			else{
+				if(fileOrDir == 1){ // 파일인 경우 파일 비교 실행
+					
+					printf("idx : %d\n", idx);
+					cmp_file(index_option, fileList);
+					break;
+				}
+
+				break;
+			}			
 		}
 	}
 }
 
 // 파일 비교(옵션 x)
-void cmp_file(char *index_option[IDXOPTION_SIZE]){
-
+void cmp_file(char *index_option[IDXOPTION_SIZE], struct fileLists *filelist){
+	char line[BUF_SIZE];
+	char *pLine;
+	FILE *in = fopen("test.txt", "r");
+	while (!feof(in)){
+		pLine = fgets(line, BUF_SIZE, in);
+		printf("%s", pLine);
+	}
+	fclose(in);
 }

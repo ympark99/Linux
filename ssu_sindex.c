@@ -131,7 +131,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	if(listIdx == 1) printf("(None)\n");
 
 	// listIdx > 1이면 옵션 프로세스 실행
-	option(fileOrDir, fileList);
+	option(fileOrDir, fileList, listIdx);
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)

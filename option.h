@@ -31,7 +31,7 @@ struct fileLists{
 	char path[BUF_SIZE];
 };
 
-void option(int fileOrDir, struct fileLists *fileList);
-void cmp_file(char *index_option[IDXOPTION_SIZE]);
+void option(int fileOrDir, struct fileLists *fileList, int listSize);
+void cmp_file(char *index_option[IDXOPTION_SIZE], struct fileLists *filelist);
 
 #endif
