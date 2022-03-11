@@ -9,9 +9,15 @@ version. It shouldn't
 be shown if it doesn't
 change. Otherwise, that
 would not be helping to
-compress anything.
+compress the size of the
+
+haha
+this is test
+
+changes.
 
 This paragraph contains
 text that is outdated.
 It will be deleted in the
+hihi
 near future.

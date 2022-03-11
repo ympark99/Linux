@@ -289,16 +289,6 @@ void save_fileInfo(char *path){
 	strcpy(fileList[listIdx].change, dateFormat(date, st.st_ctimespec));
 	strcpy(fileList[listIdx].modify, dateFormat(date, st.st_mtimespec));
 	strcpy(fileList[listIdx].path, path);
-
-	// printf("size : %lld bytes \n", (long long) st.st_size); // 파일 크기
-	// printf("mode : %hu\n", st.st_mode); // 모드
-	// printf("block : %lld\n", st.st_blocks); // 할당된 블록 수
-	// printf("hardlink : %hu\n", st.st_nlink); // 하드링크
-	// printf("UID : %u\n", st.st_uid); // 사용자id
-	// printf("GID : %u\n", st.st_gid); // 그룹id
-	// printf("access : %s\n", dateFormat(date, st.st_atimespec)); // 최종 접근 시간
-	// printf("change : %s\n", dateFormat(date, st.st_ctimespec)); // 최종 상태 변경 시간
-	// printf("modify : %s\n", dateFormat(date, st.st_mtimespec)); // 최종 수정 시간
 }
 
 void print_fileInfo(){

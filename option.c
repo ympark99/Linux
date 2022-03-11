@@ -9,7 +9,6 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize){
         printf(">> ");
 
         char oper[BUF_SIZE];
-
 		fgets(oper, BUF_SIZE, stdin); // 명령어 입력
 		oper[strlen(oper)-1] = '\0'; // 공백 제거
 
@@ -72,16 +71,18 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	// 바로 나오면 스킵하고 안나오면 비교파일 다음줄 탐색
 	// 찾다 나오면 추가 처리
 	// 비교 파일 끝까지 안나오면 원본 다음 줄 탐색(반복)
-	// 원본 끝줄까지 반복해도 안나오면 원본 비교시작 ~ 원본 끝다 삭제 처리
+	// 원본 끝줄까지 반복해도 안나오고 비교파일 끝난거 아니면 수정, 끝났으면 삭제
 	// 반복하다 나온 줄이 비교파일 비교시작 줄이면 그동안 반복 삭제 처리
 	// 아니면(몇 줄 건너뛰어서 나오면) 그 부분 change 처리
 
 	while (!feof(fp)){
 		getLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+		// printf("%s", getLine);
 		lineIdx++;
 
 		int saveCmpLineIdx = ftell(cmpFp); // 비교파일 다시 탐색시 시작할 라인 
 		getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+		// printf("%s", getCmpLine);
 		cmpLineIdx++;
 
 		if(strcmp(getLine, getCmpLine) != 0){ // 다르면 나올때까지 비교파일 탐색
@@ -100,13 +101,13 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 						getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 						printf("%s", getCmpLine);
 					}
+					getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
 					break;
 				}
 			}
-			
 		}
+		// else printf("same!!\n");
 
-		break;
 	}
 
 	fclose(fp);
