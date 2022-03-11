@@ -21,19 +21,19 @@
 
 #include <dirent.h>
 
-struct fileLists{
-	int idx;
-	long long size;
-	char mode[MODE_SIZE];
-	long long blocks;
-    int links;
-	int uid;
-	int gid;
-	char access[DATEFORMAT_SIZE];
-	char change[DATEFORMAT_SIZE];
-	char modify[DATEFORMAT_SIZE];
-	char *path;
-};
+// struct fileLists{
+// 	int idx;
+// 	long long size;
+// 	char mode[MODE_SIZE];
+// 	long long blocks;
+//     int links;
+// 	int uid;
+// 	int gid;
+// 	char access[DATEFORMAT_SIZE];
+// 	char change[DATEFORMAT_SIZE];
+// 	char modify[DATEFORMAT_SIZE];
+// 	char *path;
+// };
 
 void ssu_sindex();
 void print_inst();

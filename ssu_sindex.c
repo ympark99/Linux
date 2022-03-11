@@ -130,8 +130,8 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	// 탐색결과 없으면 (None) 출력
 	if(listIdx == 1) printf("(None)\n");
 
-	// listIdx > 1이면 출력 후 옵션함수 실행
-	option(fileOrDir);
+	// listIdx > 1이면 옵션 프로세스 실행
+	option(fileOrDir, fileList);
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
@@ -211,7 +211,7 @@ int check_fileOrDir(char*path, int fileOrDir){
 	// 파일 정보 얻기
 	if(stat(path, &st) == -1){
 		perror("stat error");
-		return;
+		return -1;
 	}
 
 	// 파일 형식
@@ -289,7 +289,7 @@ void save_fileInfo(char *path){
 	strcpy(fileList[listIdx].access, dateFormat(date, st.st_atimespec));
 	strcpy(fileList[listIdx].change, dateFormat(date, st.st_ctimespec));
 	strcpy(fileList[listIdx].modify, dateFormat(date, st.st_mtimespec));
-	fileList[listIdx].path = path;
+	strcpy(fileList[listIdx].path, path);
 
 	// printf("size : %lld bytes \n", (long long) st.st_size); // 파일 크기
 	// printf("mode : %hu\n", st.st_mode); // 모드
