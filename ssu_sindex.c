@@ -170,7 +170,6 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 
 		// 합쳤던 하위파일명 문자열 제거
 		char* ptr = strrchr(cmpPath, '/'); // 합쳤던 /하위파일명 포인터 연결
-		// printf("ptr : %s\n", ptr);
 		if(ptr){
 			strncpy(ptr, "", 1); // 합쳤던 문자열 제거
 		}

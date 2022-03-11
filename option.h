@@ -32,6 +32,6 @@ struct fileLists{
 };
 
 void option(int fileOrDir, struct fileLists *fileList, int listSize);
-void cmp_file(char *index_option[IDXOPTION_SIZE], struct fileLists *filelist);
+void cmp_file(int cmpIdx, struct fileLists *filelist);
 
 #endif

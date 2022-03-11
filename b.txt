@@ -1,0 +1,17 @@
+This is an important
+notice! It should be
+located at this document!
+
+This part of the
+document has stayed the
+same form version to
+version. It shouldn't
+be shown if it doesn't
+change. Otherwise, that
+would not be helping to
+compress anything.
+
+This paragraph contains
+text that is outdated.
+It will be deleted in the
+near future.
