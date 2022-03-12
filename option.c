@@ -60,6 +60,7 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	// FILE *fp = fopen(filelist[0].path, "r"); // 원본 파일
 	// FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
 
+	// todo : 입력한 path로 변경
 	FILE *fp = fopen("a.txt", "r"); // 테스트 원본 파일
 	FILE *cmpFp = fopen("b.txt", "r"); // 테스트 비교할 파일	
 
@@ -73,9 +74,7 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	// 비교 파일 끝까지 안나오면 원본 줄 끝까지 반복 -> 가장 비교본시작줄과 가까운 곳 찾기
 	// 1. 비교시작줄과 일치 -> 삭제 - ok
 	// 2. 일치x -> (원본 파일 끝까지 돌려서 가장 시작줄과 가까운 곳까지)수정
-
-	// 원본 끝줄까지 반복해도 안나오고 비교파일 끝난거 아니면 수정, 끝났으면 삭제
-	// 반복하다 나온 줄이 비교파일 비교시작 줄이면 그동안 반복 삭제 처리
+	// 파일 모두 끝난경우, 수정
 
 	// 방법2
 	// 두 파일 최장 공통 부분 수열 구해서
@@ -96,8 +95,10 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 		int nearCmpIdx = BUF_SIZE; // 가장 가까운 비교 줄
 		int nearCmpFtell = BUF_SIZE; // 가장 가까운 비교 라인
 
+		bool isEdit = false; // 수정하는지 확인하는 함수(마지막 제외)
+
 		if(strcmp(readLine, readCmpLine) != 0){ // 다르면 나올때까지 비교파일 탐색
-			int startLine = lineIdx; // 원본파일 시작 라인
+			int startLine = lineIdx; // 원본파일 시작 라인(읽은 후)
 			int cmpStartLine = cmpLineIdx; // 비교파일 시작 라인(읽은 후)
 			bool doOriSeek = true;
 
@@ -127,11 +128,6 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 				}
 			}
 
-
-			// 비교 파일 끝까지 안나오면 원본 줄 끝까지 반복 -> 가장 비교본시작줄과 가까운 곳 찾기
-			// 1. 비교시작줄과 일치 -> 삭제 - ok
-			// 2. 일치x -> (원본 파일 끝까지 돌려서 가장 시작줄과 가까운 곳까지)수정
-
 			// 삭제, 수정 : 비교 파일 끝까지 안나오면 원본 줄 끝까지 반복 -> 가장 비교본시작줄과 가까운 곳 찾기
 			while (!feof(fp) && doOriSeek){
 				readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
@@ -144,7 +140,6 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 				while (!feof(cmpFp)){
 					readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 					cmpLineIdx++;
-
 					// 문장 일치시
 					if(strcmp(readLine, readCmpLine) == 0){
 						// 삭제 처리 : 일치한 문장 라인이 비교시작 라인일경우
@@ -194,12 +189,19 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 								nearOriIdx = lineIdx;
 								nearOriFtell = ftell(fp);
 							}
+							isEdit = true;
 						}
 					}
 				}
 			}
-			// 수정 처리
+			// 수정 처리			
 			if(doOriSeek){
+				if(!isEdit && (feof(fp) && feof(cmpFp))){ // 파일 전체 끝난경우, 라인 저장
+					nearCmpIdx = cmpLineIdx + 1;
+					nearCmpFtell = ftell(cmpFp);
+					nearOriIdx = lineIdx + 1;
+					nearOriFtell = ftell(fp);
+				}
 				cmpLineIdx = nearCmpIdx;
 				lineIdx = nearOriIdx;
 
@@ -210,35 +212,33 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
                     printf("%dc%d,%d\n", startLine, cmpStartLine, cmpLineIdx - 1);
                 else if(startLine != (lineIdx - 1) && cmpStartLine == (cmpLineIdx - 1))
                     printf("%d,%dc%d\n", startLine, lineIdx - 1, cmpStartLine);
-                else printf("%d,%dc%d,%d\n", startLine, lineIdx - 1, cmpStartLine, cmpLineIdx - 1);			
-			}
+                else printf("%d,%dc%d,%d\n", startLine, lineIdx - 1, cmpStartLine, cmpLineIdx - 1);		
 
-                        //  // 수정 내용 출력 : 원본
-                        //  fseek(fp, startFtell, SEEK_SET); // 원본 비교시작 라인으로 이동
-                        //  for(int i = startLine; i < lineIdx; i++){
-                        //      printf("< ");
-                        //      readLine = fgets(line, BUF_SIZE, fp); // 비교파일 한 줄 읽기
-                        //      printf("%s", readLine);
-                        //  }
-                        //  readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
-                        //  printf("---\n");
-                        //  // 수정 내용 출력 : 비교
-                        //  fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
-                        //  for(int i = cmpStartLine; i < cmpLineIdx; i++){
-                        //      printf("> ");
-                        //      readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
-                        //      printf("%s", readCmpLine);
-                        //  }
-                        //  readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
-                        // }
-
-
-
+                // 수정 내용 출력 : 원본
+				fseek(fp, startFtell, SEEK_SET); // 원본 비교시작 라인으로 이동
+                for(int i = startLine; i < lineIdx; i++){
+					if(readLine == NULL) break;
+                    printf("< ");
+                    readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+                    printf("%s", readLine);
+                }
+                readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
+				if(feof(fp)) printf("\n\\No newline at end of file\n"); // 마지막 줄인경우 출력
+                printf("---\n");
+                // 수정 내용 출력 : 비교
+                fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
+                for(int i = cmpStartLine; i < cmpLineIdx; i++){
+					if(readCmpLine == NULL) break;
+                    printf("> ");
+                    readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+                    printf("%s", readCmpLine);
+                }
+                readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
+				if(feof(cmpFp)) printf("\n\\No newline at end of file\n"); // 마지막 줄인경우 출력
+			}			
 		}
-		// else printf("same!!\n");
-
 	}
-
+	// todo: 마지막 줄 처리 맞는지 점검, 추가 테스트
 	fclose(fp);
 	fclose(cmpFp);
 }
