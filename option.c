@@ -77,6 +77,7 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	// 반복하다 나온 줄이 비교파일 비교시작 줄이면 그동안 반복 삭제 처리
 
 	while (!feof(fp)){
+		int startFtell = ftell(fp); // 원본파일 다시 탐색시 시작할 라인(읽기 전)
 		readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
 		lineIdx++;
 
@@ -87,6 +88,7 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 		if(strcmp(readLine, readCmpLine) != 0){ // 다르면 나올때까지 비교파일 탐색
 			int startLine = lineIdx; // 원본파일 시작 라인
 			int cmpStartLine = cmpLineIdx; // 비교파일 시작 라인
+			bool doOriSeek = true;
 
 			// 원본파일 비교 시작줄 나올떄까지 탐색
 			while (!feof(cmpFp)){
@@ -108,15 +110,15 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 						printf("%s", readCmpLine);
 					}
 					readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
+					doOriSeek = false; // 삭제, 수정비교 x
 					break;
 				}
 			}
 
-			bool endOriSeek = false;
-			// 비교 파일 끝까지 안나오면 원본 다음 줄 탐색(반복)
-			while (!feof(fp) && !endOriSeek){
+			// 삭제, 수정 : 비교 파일 끝까지 안나오면 원본 다음 줄 탐색(반복)
+			while (!feof(fp) && doOriSeek){
 				readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
-				printf("%s", readLine);
+				// printf("%s", readLine);
 				lineIdx++;
 
 				fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
@@ -137,18 +139,19 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 							else
 								printf("%d,%dd%d\n", startLine, lineIdx - 1, cmpLineIdx - 1); // 삭제 포맷 출력
 							// 삭제된 내용 출력
-							// for(int i = startLine; i < cmpLineIdx; i++){
-							// 	printf("< ");
-							// 	readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
-							// 	printf("%s", readCmpLine);
-							// }
-
+							fseek(fp, startFtell, SEEK_SET); // 원본 비교시작 라인으로 이동
+							for(int i = startLine; i < lineIdx; i++){
+								printf("< ");
+								readLine = fgets(line, BUF_SIZE, fp); // 비교파일 한 줄 읽기
+								printf("%s", readLine);
+							}
+							readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
 						}
 						else{ // 수정 처리 : 비교시작 라인 아닐경우
 
 						}
 						// 원본 반복 탈출
-						endOriSeek = true;
+						doOriSeek = false;
 						break;
 					}
 
