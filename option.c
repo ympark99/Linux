@@ -55,7 +55,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize){
 // 파일 비교(옵션 x)
 void cmp_file(int cmpIdx, struct fileLists *filelist){
 	char line[BUF_SIZE], cmpLine[BUF_SIZE];
-	char *getLine, *getCmpLine;
+	char *readLine, *readCmpLine;
 	
 	// FILE *fp = fopen(filelist[0].path, "r"); // 원본 파일
 	// FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
@@ -67,44 +67,96 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	int cmpLineIdx = 0; // 비교파일 현재 라인
 
 	// 의사코드
-	// 원본 비교시작줄 나올때까지 find
-	// 바로 나오면 스킵하고 안나오면 비교파일 다음줄 탐색
-	// 찾다 나오면 추가 처리
+	// 원본 비교시작줄 나올때까지 find - ok
+	// 바로 나오면 스킵하고 안나오면 비교파일 다음줄 탐색 - ok
+	// 찾다 나오면 추가 처리 - ok
 	// 비교 파일 끝까지 안나오면 원본 다음 줄 탐색(반복)
+	// 원본 다음줄부터 탐색하다 나올 경우 - 1. 비교시작줄과 일치 -> 삭제 2. 일치x -> 수정
+
 	// 원본 끝줄까지 반복해도 안나오고 비교파일 끝난거 아니면 수정, 끝났으면 삭제
 	// 반복하다 나온 줄이 비교파일 비교시작 줄이면 그동안 반복 삭제 처리
-	// 아니면(몇 줄 건너뛰어서 나오면) 그 부분 change 처리
 
 	while (!feof(fp)){
-		getLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
-		// printf("%s", getLine);
+		readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
 		lineIdx++;
 
-		int saveCmpLineIdx = ftell(cmpFp); // 비교파일 다시 탐색시 시작할 라인 
-		getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
-		// printf("%s", getCmpLine);
+		int cmpStartFtell = ftell(cmpFp); // 비교파일 다시 탐색시 시작할 라인(읽기 전)
+		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 		cmpLineIdx++;
 
-		if(strcmp(getLine, getCmpLine) != 0){ // 다르면 나올때까지 비교파일 탐색
-			int startLineIdx = cmpLineIdx; // 시작 라인		
+		if(strcmp(readLine, readCmpLine) != 0){ // 다르면 나올때까지 비교파일 탐색
+			int startLine = lineIdx; // 원본파일 시작 라인
+			int cmpStartLine = cmpLineIdx; // 비교파일 시작 라인
+
+			// 원본파일 비교 시작줄 나올떄까지 탐색
 			while (!feof(cmpFp)){
-				getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+				readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 				cmpLineIdx++;
 
 				// 추가 처리 : 탐색하다 같은 줄 나온 경우
-				if(strcmp(getLine, getCmpLine) == 0){
-					printf("%da%d,%d\n", lineIdx - 1, startLineIdx, cmpLineIdx - 1); // 추가 포맷 출력
+				if(strcmp(readLine, readCmpLine) == 0){
+					if(cmpStartLine == (cmpLineIdx - 1))
+						printf("%da%d\n", lineIdx - 1, cmpStartLine); // 추가 포맷 출력	
+					else 
+						printf("%da%d,%d\n", lineIdx - 1, cmpStartLine, cmpLineIdx - 1); // 추가 포맷 출력
+
 					// 추가된 파일 내용 출력
-					fseek(cmpFp, saveCmpLineIdx, SEEK_SET); // 비교 시작 위치로 이동
-					for(int i = startLineIdx; i < cmpLineIdx; i++){
+					fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
+					for(int i = cmpStartLine; i < cmpLineIdx; i++){
 						printf("> ");
-						getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
-						printf("%s", getCmpLine);
+						readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+						printf("%s", readCmpLine);
 					}
-					getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
+					readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
 					break;
 				}
 			}
+
+			bool endOriSeek = false;
+			// 비교 파일 끝까지 안나오면 원본 다음 줄 탐색(반복)
+			while (!feof(fp) && !endOriSeek){
+				readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+				printf("%s", readLine);
+				lineIdx++;
+
+				fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
+				cmpLineIdx = cmpStartLine - 1; // 비교 시작 라인으로 초기화
+
+				// 비교시작 라인부터 탐색
+				while (!feof(cmpFp)){
+					readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+					// printf("%s\n", readCmpLine);
+					cmpLineIdx++;
+
+					// 라인 일치시
+					if(strcmp(readLine, readCmpLine) == 0){
+						// 삭제 처리 : 비교시작 라인일경우
+						if(cmpLineIdx == cmpStartLine){
+							if(startLine == (lineIdx - 1))
+								printf("%dd%d\n", startLine, cmpLineIdx - 1); // 삭제 포맷 출력
+							else
+								printf("%d,%dd%d\n", startLine, lineIdx - 1, cmpLineIdx - 1); // 삭제 포맷 출력
+							// 삭제된 내용 출력
+							// for(int i = startLine; i < cmpLineIdx; i++){
+							// 	printf("< ");
+							// 	readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+							// 	printf("%s", readCmpLine);
+							// }
+
+						}
+						else{ // 수정 처리 : 비교시작 라인 아닐경우
+
+						}
+						// 원본 반복 탈출
+						endOriSeek = true;
+						break;
+					}
+
+				}
+				// printf("line idx : %d -> 일치 x\n", lineIdx);
+			}
+
+
 		}
 		// else printf("same!!\n");
 
@@ -114,12 +166,12 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	fclose(cmpFp);
 
 	// while (!feof(fp)){
-	// 		getLine = fgets(line, BUF_SIZE, fp);
-	// 		printf("%s", getLine);
+	// 		readLine = fgets(line, BUF_SIZE, fp);
+	// 		printf("%s", readLine);
 	// }	
 	// printf("--------------\n");
 	// while (!feof(cmpFp)){
-	// 		getCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp);
-	// 		printf("%s", getCmpLine);
+	// 		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp);
+	// 		printf("%s", readCmpLine);
 	// }
 }
