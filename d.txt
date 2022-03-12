@@ -5,8 +5,7 @@ located at this document!
 This part of the
 document has stayed the
 same form version to
-version. It shouldn't
+would not be helping toe
 be shown if it doesn't
 change. Otherwise, that
 would not be helping to
-compress anything.
