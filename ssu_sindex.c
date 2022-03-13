@@ -105,7 +105,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 		findOper[2] = buf; // 변환한 절대경로 저장
 	}
 
-	printf("Index Size Mode       Blocks Links UID  GID  Access         Change         Modify         Path\n");
+	printf("Index Size Mode       Blocks Links UID  GID  Access          Change          Modify          Path\n");
 	save_fileInfo(findOper[1]); // 원본 파일(디렉토리) 리스트에 저장
 	fileOrDir = check_fileOrDir(findOper[1], fileOrDir); // 파일형식 저장
 	print_fileInfo(); // 리스트 출력
@@ -133,6 +133,8 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	// listIdx > 1이면 옵션 프로세스 실행
 	option(fileOrDir, fileList, listIdx);
 }
+
+// todo : 디렉토리 하위파일 재귀적으로 합 구하기
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
 // 비교 파일 절대경로, / + 원본 파일 이름, 원본 파일크기
@@ -292,17 +294,17 @@ void save_fileInfo(char *path){
 }
 
 void print_fileInfo(){
-	printf("%d     ", fileList[listIdx].idx);
-	printf("%lld   ", fileList[listIdx].size); // 파일 크기
-	printf("%s ", fileList[listIdx].mode); // 모드
-	printf("%lld      ", fileList[listIdx].blocks); // 할당된 블록 수
-	printf("%d     ", fileList[listIdx].links); // 하드링크
-	printf("%d  ", fileList[listIdx].uid); // 사용자id
-	printf("%d   ", fileList[listIdx].gid); // 그룹id
-	printf("%s ", fileList[listIdx].access); // 최종 접근 시간
-	printf("%s ", fileList[listIdx].change); // 최종 상태 변경 시간
-	printf("%s ", fileList[listIdx].modify); // 최종 수정 시간
-	printf("%s\n", fileList[listIdx].path);
+	printf("%-6d", fileList[listIdx].idx);
+	printf("%-5lld", fileList[listIdx].size); // 파일 크기
+	printf("%-11s", fileList[listIdx].mode); // 모드
+	printf("%-7lld", fileList[listIdx].blocks); // 할당된 블록 수
+	printf("%-6d", fileList[listIdx].links); // 하드링크
+	printf("%-5d", fileList[listIdx].uid); // 사용자id
+	printf("%-5d", fileList[listIdx].gid); // 그룹id
+	printf("%-16s", fileList[listIdx].access); // 최종 접근 시간
+	printf("%-16s", fileList[listIdx].change); // 최종 상태 변경 시간
+	printf("%-16s", fileList[listIdx].modify); // 최종 수정 시간
+	printf("%-s\n", fileList[listIdx].path);
 }
 
 // 시간 정보 포맷에 맞게 변환

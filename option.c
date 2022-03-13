@@ -37,17 +37,13 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize){
 			if(cmpIdx > listSize - 1 || cmpIdx == 0){ // 입력 INDEX가 배열 초과할 경우 에러
 				perror("index 존재 x");
 			}
-			else if(index_option[1] != NULL){ // 옵션 있는 경우
-
-			}
 			else{
-				if(fileOrDir == 1){ // 파일인 경우 파일 비교 실행
-					cmp_file(cmpIdx, fileList);
-					break;
-				}
-
+				if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
+					index_option[1] == NULL? cmp_file(cmpIdx, fileList) : cmp_fileOption(cmpIdx, fileList, index_option[1]);
+				else
+					cmp_dir(cmpIdx, fileList, index_option[1]); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
 				break;
-			}			
+			}
 		}
 	}
 }
@@ -61,25 +57,11 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	// FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
 
 	// todo : 입력한 path로 변경
-	FILE *fp = fopen("c.txt", "r"); // 테스트 원본 파일
-	FILE *cmpFp = fopen("d.txt", "r"); // 테스트 비교할 파일	
+	FILE *fp = fopen("a.txt", "r"); // 테스트 원본 파일
+	FILE *cmpFp = fopen("b.txt", "r"); // 테스트 비교할 파일	
 
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
-
-	// 의사코드
-	// 원본 비교시작줄 나올때까지 find - ok
-	// 바로 나오면 스킵하고 안나오면 비교파일 다음줄 탐색 - ok
-	// 찾다 나오면 추가 처리 - ok
-	// 비교 파일 끝까지 안나오면 원본 줄 끝까지 반복 -> 가장 비교본시작줄과 가까운 곳 찾기
-	// 1. 비교시작줄과 일치 -> 삭제 - ok
-	// 2. 일치x -> (원본 파일 끝까지 돌려서 가장 시작줄과 가까운 곳까지)수정
-	// 파일 모두 끝난경우, 수정
-
-	// 방법2
-	// 두 파일 최장 공통 부분 수열 구해서
-	// LCS 사이 + - 섞여있음 -> 수정
-	// + -> 추가, - -> 삭제
 
 	while (!feof(fp)){
 		int startFtell = ftell(fp); // 원본파일 다시 탐색시 시작할 라인(읽기 전)
@@ -233,4 +215,39 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	// todo: 마지막 줄 처리 맞는지 점검, 추가 테스트
 	fclose(fp);
 	fclose(cmpFp);
+}
+
+// 파일비교(옵션 O)
+void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
+	char line[BUF_SIZE], cmpLine[BUF_SIZE];
+	char *readLine, *readCmpLine;
+	
+	// FILE *fp = fopen(filelist[0].path, "r"); // 원본 파일
+	// FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
+
+	// todo : 입력한 path로 변경
+	FILE *fp = fopen("a.txt", "r"); // 테스트 원본 파일
+	FILE *cmpFp = fopen("b.txt", "r"); // 테스트 비교할 파일	
+
+	int lineIdx = 0; // 원본 현재 라인
+	int cmpLineIdx = 0; // 비교파일 현재 라인
+
+	while (!feof(fp) && !feof(cmpFp)){
+		readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+		lineIdx++;
+
+		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+		cmpLineIdx++;
+
+		// if((strcmp(readLine, readCmpLine) != 0) && (strcmp(option, "q") == 0)){ // 내용 다르고 q 옵션일경우 출력 후 함수 종료
+		// 	// printf("Files %s and %s differ\n", );
+		// }
+	}
+	
+
+}
+
+// 디렉토리 비교
+void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
+
 }
