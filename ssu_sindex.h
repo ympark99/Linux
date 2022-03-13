@@ -17,7 +17,7 @@
     #define MODE_SIZE 11
 #endif
 
-#define LMAX 100
+#define LMAX 1024
 
 #include <dirent.h>
 

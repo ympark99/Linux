@@ -219,15 +219,28 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 
 // 파일비교(옵션 O)
 void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
+	char oriPath[BUF_SIZE]; // 원본파일 path
+	strcpy(oriPath, filelist[0].path);
+
+	char cmpPath[BUF_SIZE]; // 비교파일 path
+	strcpy(cmpPath, filelist[cmpIdx].path);
+
+	// 다른 인덱스 찾기
+	int diffIdx = 0; // 다른 인덱스
+	for(int i = 0; i < strlen(oriPath); i++){
+		if(oriPath[i] != cmpPath[i]){
+			diffIdx = i;
+			break;
+		}
+	}
+	memmove(oriPath, oriPath + diffIdx, strlen(oriPath)); // 하위파일로 잘라주기
+	memmove(cmpPath, cmpPath + diffIdx, strlen(cmpPath)); // 하위파일로 잘라주기
+
 	char line[BUF_SIZE], cmpLine[BUF_SIZE];
 	char *readLine, *readCmpLine;
 	
-	// FILE *fp = fopen(filelist[0].path, "r"); // 원본 파일
-	// FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
-
-	// todo : 입력한 path로 변경
-	FILE *fp = fopen("a.txt", "r"); // 테스트 원본 파일
-	FILE *cmpFp = fopen("b.txt", "r"); // 테스트 비교할 파일	
+	FILE *fp = fopen(filelist[0].path, "r"); // 원본 파일
+	FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
 
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
@@ -239,12 +252,12 @@ void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
 		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 		cmpLineIdx++;
 
-		// if((strcmp(readLine, readCmpLine) != 0) && (strcmp(option, "q") == 0)){ // 내용 다르고 q 옵션일경우 출력 후 함수 종료
-		// 	// printf("Files %s and %s differ\n", );
-		// }
+		if((strcmp(readLine, readCmpLine) != 0) && (strcmp(options, "q") == 0)){ // 내용 다르고 q 옵션일경우 출력 후 함수 종료
+			printf("Files %s and %s differ\n", oriPath, cmpPath);
+			return;
+		}
 	}
-	
-
+	printf("Files %s and %s are identical\n", oriPath, cmpPath);
 }
 
 // 디렉토리 비교
