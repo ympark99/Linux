@@ -222,8 +222,9 @@ void cmp_file(char *oriPath, char *cmpPath){
 	fclose(cmpFp);
 }
 
-// 파일비교(옵션 O)
+// 파일비교 q, s 옵션
 void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
+	bool isSame = true; // 같은지 확인
 	char oriPath[BUF_SIZE]; // 원본파일 path
 	strcpy(oriPath, filelist[0].path);
 
@@ -257,12 +258,17 @@ void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
 		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 		cmpLineIdx++;
 
-		if((strcmp(readLine, readCmpLine) != 0) && (strcmp(options, "q") == 0)){ // 내용 다르고 q 옵션일경우 출력 후 함수 종료
-			printf("Files %s and %s differ\n", oriPath, cmpPath);
-			return;
+		if((strcmp(readLine, readCmpLine) != 0)){ // 내용 다를경우
+			isSame = false;
+			// q 옵션일경우 출력 후 함수 종료
+			if((strcmp(options, "q") == 0)){
+				printf("Files %s and %s differ\n", oriPath, cmpPath);
+				return;
+			}
 		}
 	}
-	printf("Files %s and %s are identical\n", oriPath, cmpPath);
+	if(isSame && strcmp(options, "s") == 0)  // s옵션인경우 출력
+		printf("Files %s and %s are identical\n", oriPath, cmpPath);
 
 	fclose(fp);
 	fclose(cmpFp);
