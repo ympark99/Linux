@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "option.h"
 
 //todo : 마지막줄 공백인 경우 처리 (fopen != NULL 등 이용)
@@ -47,7 +48,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize){
 			else{
 				if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
 					// todo: 옵션 중복가능이므로 index_optiond으로 넘겨주기
-					index_option[1] == NULL? cmp_file(fileList[0].path, fileList[cmpIdx].path) : cmp_fileOption(cmpIdx, fileList, index_option[1]);
+					index_option[1] == NULL? cmp_file(fileList[0].path, fileList[cmpIdx].path) : cmp_fileOption(fileList[0].path, fileList[cmpIdx].path, index_option[1], false);
 				else if(fileOrDir == 2)
 					cmp_dir(cmpIdx, fileList, index_option[1]); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
 				break;
@@ -222,31 +223,31 @@ void cmp_file(char *oriPath, char *cmpPath){
 	fclose(cmpFp);
 }
 
-// 파일비교 q, s 옵션
-void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
+// 파일비교 q, s 옵션 (isDiff : 0 -> ssu_index에서, 1 -> diff에서)
+void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff){
 	bool isSame = true; // 같은지 확인
-	char oriPath[BUF_SIZE]; // 원본파일 path
-	strcpy(oriPath, filelist[0].path);
+	char subOriPath[BUF_SIZE]; // 원본파일 path
+	strcpy(subOriPath, oriPath);
 
-	char cmpPath[BUF_SIZE]; // 비교파일 path
-	strcpy(cmpPath, filelist[cmpIdx].path);
+	char subCmpPath[BUF_SIZE]; // 비교파일 path
+	strcpy(subCmpPath, cmpPath);
 
 	// 다른 인덱스 찾기
 	int diffIdx = 0; // 다른 인덱스
-	for(int i = 0; i < strlen(oriPath); i++){
-		if(oriPath[i] != cmpPath[i]){
+	for(int i = 0; i < strlen(subOriPath); i++){
+		if(subOriPath[i] != subCmpPath[i]){
 			diffIdx = i;
 			break;
 		}
 	}
-	memmove(oriPath, oriPath + diffIdx, strlen(oriPath)); // 하위파일로 잘라주기
-	memmove(cmpPath, cmpPath + diffIdx, strlen(cmpPath)); // 하위파일로 잘라주기
+	memmove(subOriPath, subOriPath + diffIdx, strlen(subOriPath)); // 하위파일로 잘라주기
+	memmove(subCmpPath, subCmpPath + diffIdx, strlen(subCmpPath)); // 하위파일로 잘라주기
 
 	char line[BUF_SIZE], cmpLine[BUF_SIZE];
 	char *readLine, *readCmpLine;
 	
-	FILE *fp = fopen(filelist[0].path, "r"); // 원본 파일
-	FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
+	FILE *fp = fopen(oriPath, "r"); // 원본 파일
+	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
 
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
@@ -259,16 +260,21 @@ void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
 		cmpLineIdx++;
 
 		if((strcmp(readLine, readCmpLine) != 0)){ // 내용 다를경우
+			// diff에서 호출했을 경우 출력 후 리턴
+			if(isDiff){
+				printf("diff %s %s\n", subOriPath, subCmpPath);
+				return;
+			}
 			isSame = false;
 			// q 옵션일경우 출력 후 함수 종료
 			if((strcmp(options, "q") == 0)){
-				printf("Files %s and %s differ\n", oriPath, cmpPath);
+				printf("Files %s and %s differ\n", subOriPath, subCmpPath);
 				return;
 			}
 		}
 	}
 	if(isSame && strcmp(options, "s") == 0)  // s옵션인경우 출력
-		printf("Files %s and %s are identical\n", oriPath, cmpPath);
+		printf("Files %s and %s are identical\n", subOriPath, subCmpPath);
 
 	fclose(fp);
 	fclose(cmpFp);
@@ -279,6 +285,7 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
     struct dirent **oriList, **cmpList;
     int oriCnt, cmpCnt; // 원본 리스트 개수, 비교본 리스트 개수
 
+	//todo : 입력하위파일로 바꿔야함(다른곳도)
 	char subOriPath[BUF_SIZE]; // 원본파일 path (하위파일 잘라주기 용)
 	strcpy(subOriPath, filelist[0].path);
 
@@ -345,9 +352,14 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 				if(result_ori != result_cmp){
 					printf("File %s is a %s while file %s is a %s\n", subOriPath, getfileStr(result_ori), subCmpPath, getfileStr(result_cmp));
 				}
+				// 파일이 디렉토리인경우
+				else if((result_ori == 2) && (result_cmp == 2)){
+					printf("Common subdirectories: %s and %s\n", subOriPath, subCmpPath);
+				}
 				// 내용 다른 경우(파일)
-				else if((result_ori == 1) && (result_cmp == 1)){
+				else{
 					// todo : r 옵션
+					cmp_fileOption(oriPath, cmpPath, " ", true); // diff 출력
 					cmp_file(oriPath, cmpPath); // 파일 비교
 				}
 			}

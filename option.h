@@ -17,6 +17,8 @@
     #define MODE_SIZE 11
 #endif
 
+#include <stdbool.h>
+
 struct fileLists{
 	int idx;
 	long long size;
@@ -32,9 +34,8 @@ struct fileLists{
 };
 
 void option(int fileOrDir, struct fileLists *fileList, int listSize);
-// void cmp_file(int cmpIdx, struct fileLists *filelist);
 void cmp_file(char *oriPath, char *cmpPath);
-void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options);
+void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff);
 void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options);
 int get_fileOrDir(char *path);
 char *getfileStr(int fileOrDir);
