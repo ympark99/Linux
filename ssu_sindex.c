@@ -10,8 +10,13 @@
 #include "ssu_sindex.h"
 #include "option.h"
 
+//todo : error -> 디렉토리 함수 갔다오면 절대경로 변환 안됨
+//-> 상대경로 seg error
+
 struct fileLists fileList[LMAX]; // 출력 리스트 구조체 선언
 int listIdx = 0; // 출력 리스트 index
+
+long long total_size;
 
 void ssu_sindex(){
 	while (1){
@@ -90,23 +95,32 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 			perror("realpath error -> filename"); // todo : 전역변수 errno에 설정
 			return;
 		}
+		// strcpy(findOper[1], buf);
 		findOper[1] = buf; // 변환한 절대경로 저장
 	}
 	// 상대경로인 경우 절대경로로 변환(PATH)
 	if(findOper[2][0] != '/'){
-		char buf[BUF_SIZE];
+		char buf2[BUF_SIZE];
 		// 절대 경로가 NULL인경우 오류 발생
-		if(realpath(findOper[2], buf) == NULL){
+		if(realpath(findOper[2], buf2) == NULL){
 			perror("realpath error -> path"); // todo : 전역변수 errno에 설정
 			return;
 		}
-		findOper[2] = buf; // 변환한 절대경로 저장
+		findOper[2] = buf2; // 변환한 절대경로 저장
 	}
-
 	int fileOrDir = 0; // 1 : 파일, 2 : 디렉토리
-	fileOrDir = check_fileOrDir(findOper[1], fileOrDir); // 파일형식 저장
-	long long oriSize = (fileOrDir == 1) ? get_fileSize(findOper[1]) : get_dirSize(findOper[1], 0); // 파일 or 디렉토리 크기 저장
-	
+	fileOrDir = check_fileOrDir(findOper[1]); // 파일형식 저장
+	printf("fieorDir : %d\n",fileOrDir);
+	long long oriSize;
+	if(fileOrDir == 1){
+		oriSize = get_fileSize(findOper[1]);
+	}
+	else{
+		get_dirSize(findOper[1]);
+		oriSize = total_size;
+	}
+	// long long oriSize = (fileOrDir == 1) ? get_fileSize(findOper[1]) : get_dirSize(findOper[1]); // 파일 or 디렉토리 크기 저장
+	printf("oriSize : %lld\n", oriSize);
 	// 리스트 출력
 	printf("Index Size Mode       Blocks Links UID  GID  Access          Change          Modify          Path\n");
 	save_fileInfo(findOper[1], oriSize); // 원본 파일(디렉토리) 리스트에 저장
@@ -127,7 +141,6 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	free(namelist);
 
 	dfs_findMatchFiles(findOper[2], fileName, oriSize, fileOrDir); // PATH부터 디렉토리 탐색 & 리스트 저장
-
 	if(listIdx == 1)
 		printf("(None)\n"); // 탐색결과 없으면 (None) 출력
 	else if(listIdx > 1) 
@@ -159,7 +172,13 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fi
 
 		// 이름 같은 파일/dir 발견할 경우
 		if(strcmp(fileName, strcat(cmpFileName, namelist[i]->d_name)) == 0){
-			long long cmpSize = (fileOrDir == 1) ? get_fileSize(cmpPath) : get_dirSize(cmpPath, 0);
+			long long cmpSize;
+			if(fileOrDir == 1) cmpSize = get_fileSize(cmpPath);
+			else{
+				get_dirSize(cmpPath);
+				cmpSize = total_size;
+			}
+			// long long cmpSize = (fileOrDir == 1) ? get_fileSize(cmpPath) : get_dirSize(cmpPath);
 			// 파일/dir 크기 같으면 리스트 등록
 			if(oriSize == cmpSize){
 				save_fileInfo(cmpPath, oriSize); // 리스트에 등록
@@ -208,42 +227,55 @@ long long get_fileSize(char *path){
 }
 
 // 디렉토리 크기 리턴
-long long get_dirSize(char *path, long long total_size){
+void get_dirSize(char *path){
     struct dirent **namelist;
     int cnt;
     struct stat st;
 
-    // 디렉토리로 이동
-    if (chdir(path) < 0){
-        perror("디렉토리 변경 오류 ");
-        return -1;
-    }
-
     // scandir로 하위파일 가져오기
-    cnt = scandir(".", &namelist, NULL, alphasort);
+	if((cnt = scandir(path, &namelist, NULL, alphasort)) == -1){
+		perror("scandir error\n"); // todo : errno 설정
+		return;
+	}
 
     // 하위리스트 반복 -> 디렉토리 일경우 재귀
     for (int i = 0; i < cnt; i++){
         struct stat st;
+		// printf("debug2\t");
+		// printf("%s\n",namelist[i]->d_name);
 
-        // 현재디렉토리, 이전디렉토리 무시
+        // 현재디렉토리, 상위 디렉토리 패스
         if ((!strcmp(namelist[i]->d_name, ".")) || (!strcmp(namelist[i]->d_name, ".."))){
             continue;
         }
-        
-		lstat(namelist[i]->d_name, &st); // 파일 정보 st로 저장
+
+		// path : 비교파일절대경로/하위파일명 으로 합치기
+		strcat(path, "/");
+		strcat(path, namelist[i]->d_name);
+
+		if(stat(path, &st) == -1){
+			perror("get dir stat error");
+			return;
+		}
+
         total_size += st.st_size; // 각각 파일 크기 더해줌
 
         // 디렉토리일 경우
-        if (S_ISDIR(st.st_mode) && S_ISLNK(st.st_mode))
-            total_size += get_dirSize(namelist[i]->d_name, 0); // 재귀적으로 더해줌
+        if (((st.st_mode & S_IFMT) == S_IFDIR) || ((st.st_mode & S_IFMT) == S_IFLNK)){
+		// if(S_ISDIR(st.st_mode) && S_ISLNK(st.st_mode)){
+			get_dirSize(path); // 재귀적으로 더해줌
+		}
+		// 합쳤던 하위파일명 문자열 제거
+		char* ptr = strrchr(path, '/'); // 합쳤던 /하위파일명 포인터 연결
+		if(ptr){
+			strncpy(ptr, "", 1); // 합쳤던 문자열 제거
+		}	
     }
-	return total_size;
 }
 
-int check_fileOrDir(char*path, int fileOrDir){
+int check_fileOrDir(char*path){
 	struct stat st;
-
+	int fileOrDir = 0;
 	// 파일 정보 얻기
 	if(stat(path, &st) == -1){
 		perror("stat error");
