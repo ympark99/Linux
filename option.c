@@ -2,6 +2,11 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "option.h"
 
 //todo : 마지막줄 공백인 경우 처리 (fopen != NULL 등 이용)
@@ -41,6 +46,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize){
 			}
 			else{
 				if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
+					// todo: 옵션 중복가능이므로 index_optiond으로 넘겨주기
 					index_option[1] == NULL? cmp_file(cmpIdx, fileList) : cmp_fileOption(cmpIdx, fileList, index_option[1]);
 				else
 					cmp_dir(cmpIdx, fileList, index_option[1]); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
@@ -59,8 +65,8 @@ void cmp_file(int cmpIdx, struct fileLists *filelist){
 	// FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
 
 	// todo : 입력한 path로 변경
-	FILE *fp = fopen("a.txt", "r"); // 테스트 원본 파일
-	FILE *cmpFp = fopen("b.txt", "r"); // 테스트 비교할 파일	
+	FILE *fp = fopen("test/e.txt", "r"); // 테스트 원본 파일
+	FILE *cmpFp = fopen("test/f.txt", "r"); // 테스트 비교할 파일	
 
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
@@ -264,5 +270,104 @@ void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options){
 
 // 디렉토리 비교
 void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
+    struct dirent **oriList, **cmpList;
+    int oriCnt, cmpCnt; // 원본 리스트 개수, 비교본 리스트 개수
 
+	char subOriPath[BUF_SIZE]; // 원본파일 path (하위파일 잘라주기 용)
+	strcpy(subOriPath, filelist[0].path);
+
+	char subCmpPath[BUF_SIZE]; // 비교파일 path (하위파일 잘라주기 용)
+	strcpy(subCmpPath, filelist[cmpIdx].path);
+
+	// 다른 인덱스 찾기
+	int diffIdx = 0; // 다른 인덱스
+	for(int i = 0; i < strlen(subOriPath); i++){
+		if(subOriPath[i] != subCmpPath[i]){
+			diffIdx = i;
+			break;
+		}
+	}
+	memmove(subOriPath, subOriPath + diffIdx, strlen(subOriPath)); // 하위파일로 잘라주기
+	memmove(subCmpPath, subCmpPath + diffIdx, strlen(subCmpPath)); // 하위파일로 잘라주기
+
+
+	char oriPath[BUF_SIZE], cmpPath[BUF_SIZE]; // 원본 비교 경로(하위파일 합치기 용)
+	strcpy(oriPath, filelist[0].path);
+	strcpy(cmpPath, filelist[cmpIdx].path);
+
+	// 에러 있을 경우 에러 처리
+	if((oriCnt = scandir(filelist[0].path, &oriList, NULL, alphasort)) == -1){
+		fprintf(stderr, "%s Directory Scan Error : %s \n", filelist[0].path, strerror(errno)); // todo : errno 설정
+		return;
+	}
+	if((cmpCnt = scandir(filelist[cmpIdx].path, &cmpList, NULL, alphasort)) == -1){
+		fprintf(stderr, "%s Directory Scan Error : %s \n", filelist[cmpIdx].path, strerror(errno)); // todo : errno 설정
+		return;
+	}
+
+	for(int i = 0; i < oriCnt; i++){
+        // 현재디렉토리, 이전디렉토리 무시
+        if ((!strcmp(oriList[i]->d_name, ".")) || (!strcmp(oriList[i]->d_name, ".."))){
+            continue;
+        }
+
+		// 원본 경로 + '/하위파일'
+		strcat(oriPath, "/");
+		strcat(oriPath, oriList[i]->d_name);		
+		// 하위파일 자른 경로 + '/하위파일'
+		strcat(subOriPath, "/");
+		strcat(subOriPath, oriList[i]->d_name);
+
+		// 비교본 하나씩 비교
+		for(int j = 0; j < cmpCnt; j++){
+			if ((!strcmp(cmpList[j]->d_name, ".")) || (!strcmp(cmpList[j]->d_name, ".."))){
+				continue;
+			}
+			// 비교 경로 + '/하위파일'
+			strcat(cmpPath, "/");
+			strcat(cmpPath, oriList[j]->d_name);
+			// 하위파일 자른 경로 + '/하위파일'
+			strcat(subCmpPath, "/");
+			strcat(subCmpPath, oriList[j]->d_name);
+
+			// 이름 동일한경우
+			if(strcmp(oriList[i]->d_name, cmpList[j]->d_name) == 0){
+				// 파일 종류 다른 경우
+				if(get_fileOrDir(oriPath) != get_fileOrDir(cmpPath)){
+					printf("File %s is a %s while file %s is a %s\n", subOriPath, getfileStr(get_fileOrDir(oriPath)), subCmpPath, getfileStr(get_fileOrDir(cmpPath)));
+					break;
+				}
+				// 내용 다른 경우 
+				// todo : r 옵션
+				// cmp_file(cmpIdx, filelist); // 파일 비교
+			}
+		}
+		printf("-------\n");
+	}
+}
+
+int get_fileOrDir(char *path){
+	struct stat st;
+	int fileOrDir = 0;
+	// 파일 정보 얻기
+	if(stat(path, &st) == -1){
+		perror("stat error");
+		return -1;
+	}
+
+	// 파일 형식
+	switch (st.st_mode & S_IFMT){
+		case S_IFREG:
+			fileOrDir = 1;
+			break;
+		case S_IFDIR:
+			fileOrDir = 2;
+			break;
+	}
+	return fileOrDir;
+}
+
+char *getfileStr(int fileOrDir){
+	if(fileOrDir == 1) return "regular file";
+	return "directory";
 }

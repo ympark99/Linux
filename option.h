@@ -35,5 +35,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize);
 void cmp_file(int cmpIdx, struct fileLists *filelist);
 void cmp_fileOption(int cmpIdx, struct fileLists *filelist, char *options);
 void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options);
+int get_fileOrDir(char *path);
+char *getfileStr(int fileOrDir);
 
 #endif
