@@ -47,7 +47,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize){
 			else{
 				if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
 					// todo: 옵션 중복가능이므로 index_optiond으로 넘겨주기
-					index_option[1] == NULL? cmp_file(cmpIdx, fileList) : cmp_fileOption(cmpIdx, fileList, index_option[1]);
+					index_option[1] == NULL? cmp_file(fileList[0].path, fileList[cmpIdx].path) : cmp_fileOption(cmpIdx, fileList, index_option[1]);
 				else if(fileOrDir == 2)
 					cmp_dir(cmpIdx, fileList, index_option[1]); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
 				break;
@@ -56,16 +56,15 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize){
 	}
 }
 
-// 파일 비교(옵션 x)
-void cmp_file(int cmpIdx, struct fileLists *filelist){
+// 파일 비교
+void cmp_file(char *oriPath, char *cmpPath){
 	char line[BUF_SIZE], cmpLine[BUF_SIZE];
 	char *readLine, *readCmpLine;
-	// FILE *fp = fopen(filelist[0].path, "r"); // 원본 파일
-	// FILE *cmpFp = fopen(filelist[cmpIdx].path, "r"); // 비교할 파일
+	FILE *fp = fopen(oriPath, "r"); // 원본 파일
+	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
 
-	// todo : 입력한 path로 변경
-	FILE *fp = fopen("test/e.txt", "r"); // 테스트 원본 파일
-	FILE *cmpFp = fopen("test/f.txt", "r"); // 테스트 비교할 파일	
+	// FILE *fp = fopen("test/e.txt", "r"); // 테스트 원본 파일
+	// FILE *cmpFp = fopen("test/f.txt", "r"); // 테스트 비교할 파일
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
 
@@ -306,6 +305,7 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 		return;
 	}
 
+	// 원본 디렉토리 한번씩 순회
 	for(int i = 0; i < oriCnt; i++){
         // 현재디렉토리, 이전디렉토리 무시
         if ((!strcmp(oriList[i]->d_name, ".")) || (!strcmp(oriList[i]->d_name, ".."))){
@@ -319,7 +319,7 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 		strcat(subOriPath, "/");
 		strcat(subOriPath, oriList[i]->d_name);
 
-		// 비교본 하나씩 비교
+		// 비교 디렉토리 한번씩 순회
 		for(int j = 0; j < cmpCnt; j++){
 			if ((!strcmp(cmpList[j]->d_name, ".")) || (!strcmp(cmpList[j]->d_name, ".."))){
 				continue;
@@ -333,15 +333,17 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 
 			// 이름 동일한경우
 			if(strcmp(oriList[i]->d_name, cmpList[j]->d_name) == 0){
-				int result_ori = get_fileOrDir(oriPath);
-				int result_cmp = get_fileOrDir(cmpPath);
+				int result_ori = get_fileOrDir(oriPath); // 원본 파일 or 디렉토리인지
+				int result_cmp = get_fileOrDir(cmpPath); // 비교본 파일 or 디렉토리인지
 				// 파일 종류 다른 경우
 				if(result_ori != result_cmp){
 					printf("File %s is a %s while file %s is a %s\n", subOriPath, getfileStr(result_ori), subCmpPath, getfileStr(result_cmp));
 				}
-				// 내용 다른 경우 
-				// todo : r 옵션
-				// cmp_file(cmpIdx, filelist); // 파일 비교
+				// 내용 다른 경우(파일)
+				else if((result_ori == 1) && (result_cmp == 1)){
+					// todo : r 옵션
+					cmp_file(oriPath, cmpPath); // 파일 비교
+				}
 			}
 
 			// 합쳤던 하위파일명 문자열 제거 : 비교본
