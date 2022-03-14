@@ -16,7 +16,7 @@
 struct fileLists fileList[LMAX]; // 출력 리스트 구조체 선언
 int listIdx = 0; // 출력 리스트 index
 
-long long total_size;
+long long sumDirSize; // 하위 파일들 합친 디렉토리 크기
 
 void ssu_sindex(){
 	while (1){
@@ -108,19 +108,22 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 		}
 		findOper[2] = buf2; // 변환한 절대경로 저장
 	}
+	
 	int fileOrDir = 0; // 1 : 파일, 2 : 디렉토리
 	fileOrDir = check_fileOrDir(findOper[1]); // 파일형식 저장
-	printf("fieorDir : %d\n",fileOrDir);
+
 	long long oriSize;
 	if(fileOrDir == 1){
 		oriSize = get_fileSize(findOper[1]);
 	}
 	else{
-		get_dirSize(findOper[1]);
-		oriSize = total_size;
+		char buf[BUF_SIZE];
+		strcpy(buf, findOper[1]);
+		get_dirSize(buf);
+		oriSize = sumDirSize;
+		sumDirSize = 0; // 초기화
 	}
-	// long long oriSize = (fileOrDir == 1) ? get_fileSize(findOper[1]) : get_dirSize(findOper[1]); // 파일 or 디렉토리 크기 저장
-	printf("oriSize : %lld\n", oriSize);
+
 	// 리스트 출력
 	printf("Index Size Mode       Blocks Links UID  GID  Access          Change          Modify          Path\n");
 	save_fileInfo(findOper[1], oriSize); // 원본 파일(디렉토리) 리스트에 저장
@@ -134,7 +137,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	int cnt; // return 값
 
 	// 에러 있을 경우 에러 처리
-	if((cnt = scandir(findOper[2], &namelist, NULL, alphasort)) == -1){
+	if((cnt = scandir(findOper[2], &namelist, scandirFilter, alphasort)) == -1){
 		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno)); // todo : errno 설정
 		return;
 	}
@@ -176,7 +179,7 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fi
 			if(fileOrDir == 1) cmpSize = get_fileSize(cmpPath);
 			else{
 				get_dirSize(cmpPath);
-				cmpSize = total_size;
+				cmpSize = sumDirSize;
 			}
 			// long long cmpSize = (fileOrDir == 1) ? get_fileSize(cmpPath) : get_dirSize(cmpPath);
 			// 파일/dir 크기 같으면 리스트 등록
@@ -184,6 +187,7 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fi
 				save_fileInfo(cmpPath, oriSize); // 리스트에 등록
 				print_fileInfo();
 				listIdx++;
+				sumDirSize = 0; // dir 크기 초기화
 			};
 		}
 		free(cmpFileName);
@@ -233,7 +237,7 @@ void get_dirSize(char *path){
     struct stat st;
 
     // scandir로 하위파일 가져오기
-	if((cnt = scandir(path, &namelist, NULL, alphasort)) == -1){
+	if((cnt = scandir(path, &namelist, scandirFilter, alphasort)) == -1){
 		perror("scandir error\n"); // todo : errno 설정
 		return;
 	}
@@ -241,13 +245,6 @@ void get_dirSize(char *path){
     // 하위리스트 반복 -> 디렉토리 일경우 재귀
     for (int i = 0; i < cnt; i++){
         struct stat st;
-		// printf("debug2\t");
-		// printf("%s\n",namelist[i]->d_name);
-
-        // 현재디렉토리, 상위 디렉토리 패스
-        if ((!strcmp(namelist[i]->d_name, ".")) || (!strcmp(namelist[i]->d_name, ".."))){
-            continue;
-        }
 
 		// path : 비교파일절대경로/하위파일명 으로 합치기
 		strcat(path, "/");
@@ -258,11 +255,10 @@ void get_dirSize(char *path){
 			return;
 		}
 
-        total_size += st.st_size; // 각각 파일 크기 더해줌
+        sumDirSize += st.st_size; // 각각 파일 크기 더해줌
 
         // 디렉토리일 경우
         if (((st.st_mode & S_IFMT) == S_IFDIR) || ((st.st_mode & S_IFMT) == S_IFLNK)){
-		// if(S_ISDIR(st.st_mode) && S_ISLNK(st.st_mode)){
 			get_dirSize(path); // 재귀적으로 더해줌
 		}
 		// 합쳤던 하위파일명 문자열 제거
