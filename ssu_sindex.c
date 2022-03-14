@@ -80,10 +80,8 @@ void print_inst(){
 	printf("   r : recursivly compare any subdirectories found\n");
 }
 
-// find 함수
+// find 함수 : findOper[1] : 원본 경로, findOper[2] : 비교 경로
 void find_first(char *findOper[FINDOPER_SIZE]){
-	int fileOrDir = 0; // 1 : 파일, 2 : 디렉토리
-
 	// 상대경로인 경우 절대경로로 변환(원본 FILENAME)
 	if(findOper[1][0] != '/'){
 		char buf[BUF_SIZE];
@@ -105,15 +103,18 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 		findOper[2] = buf; // 변환한 절대경로 저장
 	}
 
-	printf("Index Size Mode       Blocks Links UID  GID  Access          Change          Modify          Path\n");
-	save_fileInfo(findOper[1]); // 원본 파일(디렉토리) 리스트에 저장
+	int fileOrDir = 0; // 1 : 파일, 2 : 디렉토리
 	fileOrDir = check_fileOrDir(findOper[1], fileOrDir); // 파일형식 저장
+	long long oriSize = (fileOrDir == 1) ? get_fileSize(findOper[1]) : get_dirSize(findOper[1], 0); // 파일 or 디렉토리 크기 저장
+	
+	// 리스트 출력
+	printf("Index Size Mode       Blocks Links UID  GID  Access          Change          Modify          Path\n");
+	save_fileInfo(findOper[1], oriSize); // 원본 파일(디렉토리) 리스트에 저장
 	print_fileInfo(); // 리스트 출력
 	listIdx++;
 
 	char *fileName = strrchr(findOper[1], '/'); // / 들어간 마지막 위치 반환
-	long long fileSize = get_fileSize(findOper[1]); // 원본 파일 크기 저장
-
+	
 	// 최초입력 PATH 에러 검사
 	struct dirent **namelist; // scandir 관련 선언
 	int cnt; // return 값
@@ -125,20 +126,19 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	}
 	free(namelist);
 
-	dfs_findMatchFiles(findOper[2], fileName, fileSize); // PATH부터 디렉토리 탐색 & 리스트 저장
+	dfs_findMatchFiles(findOper[2], fileName, oriSize, fileOrDir); // PATH부터 디렉토리 탐색 & 리스트 저장
 
-	// 탐색결과 없으면 (None) 출력
-	if(listIdx == 1) printf("(None)\n");
-
-	// listIdx > 1이면 옵션 프로세스 실행
-	option(fileOrDir, fileList, listIdx);
+	if(listIdx == 1)
+		printf("(None)\n"); // 탐색결과 없으면 (None) 출력
+	else if(listIdx > 1) 
+		option(fileOrDir, fileList, listIdx); // listIdx > 1이면 옵션 프로세스 실행
 }
 
 // todo : 디렉토리 하위파일 재귀적으로 합 구하기
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
 // 비교 파일 절대경로, / + 원본 파일 이름, 원본 파일크기
-void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
+void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fileOrDir){
 	// scandir 관련 선언
 	struct dirent **namelist;
 	int cnt; // return 값
@@ -159,16 +159,17 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize){
 
 		// 이름 같은 파일/dir 발견할 경우
 		if(strcmp(fileName, strcat(cmpFileName, namelist[i]->d_name)) == 0){
+			long long cmpSize = (fileOrDir == 1) ? get_fileSize(cmpPath) : get_dirSize(cmpPath, 0);
 			// 파일/dir 크기 같으면 리스트 등록
-			if(fileSize == get_fileSize(cmpPath)){
-				save_fileInfo(cmpPath); // 리스트에 등록
+			if(oriSize == cmpSize){
+				save_fileInfo(cmpPath, oriSize); // 리스트에 등록
 				print_fileInfo();
 				listIdx++;
 			};
 		}
 		free(cmpFileName);
 
-		dfs_findMatchFiles(cmpPath, fileName, fileSize); // dfs
+		dfs_findMatchFiles(cmpPath, fileName, oriSize, fileOrDir); // dfs
 
 		// 합쳤던 하위파일명 문자열 제거
 		char* ptr = strrchr(cmpPath, '/'); // 합쳤던 /하위파일명 포인터 연결
@@ -206,6 +207,40 @@ long long get_fileSize(char *path){
 	return (long long) st.st_size;
 }
 
+// 디렉토리 크기 리턴
+long long get_dirSize(char *path, long long total_size){
+    struct dirent **namelist;
+    int cnt;
+    struct stat st;
+
+    // 디렉토리로 이동
+    if (chdir(path) < 0){
+        perror("디렉토리 변경 오류 ");
+        return -1;
+    }
+
+    // scandir로 하위파일 가져오기
+    cnt = scandir(".", &namelist, NULL, alphasort);
+
+    // 하위리스트 반복 -> 디렉토리 일경우 재귀
+    for (int i = 0; i < cnt; i++){
+        struct stat st;
+
+        // 현재디렉토리, 이전디렉토리 무시
+        if ((!strcmp(namelist[i]->d_name, ".")) || (!strcmp(namelist[i]->d_name, ".."))){
+            continue;
+        }
+        
+		lstat(namelist[i]->d_name, &st); // 파일 정보 st로 저장
+        total_size += st.st_size; // 각각 파일 크기 더해줌
+
+        // 디렉토리일 경우
+        if (S_ISDIR(st.st_mode) && S_ISLNK(st.st_mode))
+            total_size += get_dirSize(namelist[i]->d_name, 0); // 재귀적으로 더해줌
+    }
+	return total_size;
+}
+
 int check_fileOrDir(char*path, int fileOrDir){
 	struct stat st;
 
@@ -234,7 +269,7 @@ int check_fileOrDir(char*path, int fileOrDir){
 }
 
 // 파일 정보 리스트에 저장
-void save_fileInfo(char *path){
+void save_fileInfo(char *path, long long oriSize){
 	struct stat st;
 
 	// 파일 정보 얻기
@@ -281,7 +316,7 @@ void save_fileInfo(char *path){
 	char date[DATEFORMAT_SIZE]; // 저장될 시간 정보
 
 	fileList[listIdx].idx = listIdx;
-	fileList[listIdx].size = (long long) st.st_size;
+	fileList[listIdx].size = oriSize;
 	strcpy(fileList[listIdx].mode, mode2str);
 	fileList[listIdx].blocks = st.st_blocks;
 	fileList[listIdx].links = st.st_nlink;

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include "option.h"
 
+//todo : 마지막줄 공백인 경우 처리 (fopen != NULL 등 이용)
+
 void option(int fileOrDir, struct fileLists *fileList, int listSize){
 	while(1){
         printf(">> ");
