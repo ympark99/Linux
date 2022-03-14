@@ -280,6 +280,14 @@ void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff){
 	fclose(cmpFp);
 }
 
+// scandir 필터(. 과 .. 제거)
+int scanFilter(const struct dirent *info){
+	if(strcmp(info->d_name, ".") == 0 || strcmp(info->d_name, "..") == 0){
+		return 0; // .이나 .. 이면 filter
+	}
+	else return 1;
+}
+
 // 디렉토리 비교
 void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
     struct dirent **oriList, **cmpList;
@@ -309,22 +317,21 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 	strcpy(cmpPath, filelist[cmpIdx].path);
 
 	// 에러 있을 경우 에러 처리
-	if((oriCnt = scandir(filelist[0].path, &oriList, NULL, alphasort)) == -1){
+	if((oriCnt = scandir(filelist[0].path, &oriList, scanFilter, alphasort)) == -1){
 		fprintf(stderr, "%s Directory Scan Error : %s \n", filelist[0].path, strerror(errno)); // todo : errno 설정
 		return;
 	}
-	if((cmpCnt = scandir(filelist[cmpIdx].path, &cmpList, NULL, alphasort)) == -1){
+	if((cmpCnt = scandir(filelist[cmpIdx].path, &cmpList, scanFilter, alphasort)) == -1){
 		fprintf(stderr, "%s Directory Scan Error : %s \n", filelist[cmpIdx].path, strerror(errno)); // todo : errno 설정
 		return;
 	}
 
+	// // 하위파일 개수만큼 체크 배열 생성 -> 체크 안될경우 only in
+	// bool oriCheck[] = malloc(sizeof(bool) * oriCnt);
+	// bool cmpCheck[] = malloc(sizeof(bool) * cmpCnt);
+
 	// 원본 디렉토리 한번씩 순회
 	for(int i = 0; i < oriCnt; i++){
-        // 현재디렉토리, 이전디렉토리 무시
-        if ((!strcmp(oriList[i]->d_name, ".")) || (!strcmp(oriList[i]->d_name, ".."))){
-            continue;
-        }
-
 		// 원본 경로 + '/하위파일'
 		strcat(oriPath, "/");
 		strcat(oriPath, oriList[i]->d_name);		
@@ -332,11 +339,9 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 		strcat(subOriPath, "/");
 		strcat(subOriPath, oriList[i]->d_name);
 
+		bool isCheck = false; // 원본 출력 됐는지 확인
 		// 비교 디렉토리 한번씩 순회
-		for(int j = 0; j < cmpCnt; j++){
-			if ((!strcmp(cmpList[j]->d_name, ".")) || (!strcmp(cmpList[j]->d_name, ".."))){
-				continue;
-			}
+		for(int j = 0; j < cmpCnt; j++){			
 			// 비교 경로 + '/하위파일'
 			strcat(cmpPath, "/");
 			strcat(cmpPath, oriList[j]->d_name);
@@ -346,6 +351,8 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 
 			// 이름 동일한경우
 			if(strcmp(oriList[i]->d_name, cmpList[j]->d_name) == 0){
+				// printf("ori : %s\n", oriPath);
+				// printf("cmp : %s\n", cmpPath);
 				int result_ori = get_fileOrDir(oriPath); // 원본 파일 or 디렉토리인지
 				int result_cmp = get_fileOrDir(cmpPath); // 비교본 파일 or 디렉토리인지
 				// 파일 종류 다른 경우
@@ -362,6 +369,7 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 					cmp_fileOption(oriPath, cmpPath, " ", true); // diff 출력
 					cmp_file(oriPath, cmpPath); // 파일 비교
 				}
+				isCheck = true; // 출력 됐으므로 true
 			}
 
 			// 합쳤던 하위파일명 문자열 제거 : 비교본
@@ -375,16 +383,20 @@ void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options){
 				strncpy(ptr2, "", 1); // 합쳤던 문자열 제거
 			}					
 		}
+		// 출력 안된경우 원본에만 존재
+		if(!isCheck){
+			printf("Only in %s: %s\n", oriPath, oriList[i]->d_name); //todo : oripath 바꿔야함, only 파일시 stat에러 해결
+		}
 		// 합쳤던 하위파일명 문자열 제거 : 원본
 		char* ptr = strrchr(oriPath, '/'); // 합쳤던 /하위파일명 포인터 연결
 		if(ptr){
 			strncpy(ptr, "", 1); // 합쳤던 문자열 제거
 		}			
 		// 합쳤던 sub 문자열 제거 : 원본
-		char* ptr2 = strrchr(subOriPath, '/'); // 합쳤던 /하위파일명 포인터 연결
+		char* ptr2 = strrchr(subOriPath, '/'); // 합쳤던 /하위파일명 포인터 연결				
 		if(ptr2){
 			strncpy(ptr2, "", 1); // 합쳤던 문자열 제거
-		}				
+		}	
 	}
 }
 
