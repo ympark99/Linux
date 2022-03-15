@@ -34,11 +34,11 @@ struct fileLists{
 	char path[BUF_SIZE];
 };
 
-void option(int fileOrDir, struct fileLists *fileList, int listSize);
+void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath);
 void cmp_file(char *oriPath, char *cmpPath);
-void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff);
+void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff, char *printPath);
 int scanFilter(const struct dirent *info);
-void cmp_dir(int cmpIdx, struct fileLists *filelist, char *options);
+void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *options);
 int get_fileOrDir(char *path);
 char *getfileStr(int fileOrDir);
 

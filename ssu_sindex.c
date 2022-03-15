@@ -147,7 +147,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	if(listIdx == 1)
 		printf("(None)\n"); // 탐색결과 없으면 (None) 출력
 	else if(listIdx > 1) 
-		option(fileOrDir, fileList, listIdx); // listIdx > 1이면 옵션 프로세스 실행
+		option(fileOrDir, fileList, listIdx, findOper[1]); // listIdx > 1이면 옵션 프로세스 실행
 }
 
 // todo : 디렉토리 하위파일 재귀적으로 합 구하기
