@@ -39,6 +39,7 @@ void cmp_file(char *oriPath, char *cmpPath);
 void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff, char *printPath);
 int scanFilter(const struct dirent *info);
 void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *options);
+bool isCmpFirst(char *oriName, char *cmpName);
 int get_fileOrDir(char *path);
 char *getfileStr(int fileOrDir);
 

@@ -12,7 +12,7 @@
 
 //todo : 마지막줄 공백인 경우 처리 (fopen != NULL 등 이용)
 //todo : 디렉토리 -> 파일 비교시 여러줄 수정 처리됨
-//todo : cmpfile diff 출력 경로
+//todo : cmpfile diff 출력 경로 : 그냥 findoper[2]넘기면 될듯
 
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath){
 	while(1){
@@ -333,9 +333,10 @@ void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *opti
 		return;
 	}
 
-	// // 하위파일 개수만큼 체크 배열 생성 -> 체크 안될경우 only in
-	// bool oriCheck[] = malloc(sizeof(bool) * oriCnt);
-	// bool cmpCheck[] = malloc(sizeof(bool) * cmpCnt);
+	// 하위파일 개수만큼 체크 배열 생성 -> 체크 안될경우 only in
+	bool* cmpCheck = (bool *)malloc(sizeof(bool) * cmpCnt);
+	for(int i = 0; i < cmpCnt; i++)
+		cmpCheck[i] = false;
 
 	// 원본 디렉토리 한번씩 순회
 	for(int i = 0; i < oriCnt; i++){
@@ -350,6 +351,7 @@ void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *opti
 		strcat(inputPath, oriList[i]->d_name);
 
 		bool isCheck = false; // 원본 출력 됐는지 확인
+
 		// 비교 디렉토리 한번씩 순회
 		for(int j = 0; j < cmpCnt; j++){
 			// 비교 경로 + '/하위파일'
@@ -379,7 +381,15 @@ void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *opti
 					cmp_fileOption(oriPath, cmpPath, " ", true, inputPath); // diff 출력
 					cmp_file(oriPath, cmpPath); // 파일 비교
 				}
+				cmpCheck[j] = true;
 				isCheck = true; // 출력 됐으므로 true
+			}
+			else{ // 이름 다른 경우
+				// 원본보다 비교본 파일이름이 아스키 앞 && 비교본 체크 x -> only in
+				if(isCmpFirst(oriList[i]->d_name, cmpList[j]->d_name) && (cmpCheck[j] == false)){
+					printf("Only in %s: %s\n", subCmpPath, cmpList[j]->d_name);
+					cmpCheck[j] = true;
+				}
 			}
 
 			// 합쳤던 하위파일명 문자열 제거 : 비교본
@@ -413,6 +423,22 @@ void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *opti
 			printf("Only in %s: %s\n", inputPath, oriList[i]->d_name);
 		}		
 	}
+	free(cmpCheck);
+}
+
+// 아스키코드 순서 비교
+bool isCmpFirst(char *oriName, char *cmpName){
+	bool oriMoreLong = (strlen(cmpName) < strlen(oriName)) ? true : false;
+	int num = oriMoreLong ? strlen(cmpName) : strlen(oriName);
+
+	for(int i = 0; i < num; i++){
+		// 원본이 아스키코드 뒤일경우 true
+		if(cmpName[i] < oriName[i]) return true;
+		else if(oriName[i] < cmpName[i]) return false;
+	}
+	// 원본 이름이 비교본 포함한경우
+	if(oriMoreLong) return true;
+	return false;
 }
 
 int get_fileOrDir(char *path){
