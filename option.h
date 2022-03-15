@@ -40,10 +40,10 @@ struct fileLists{
 
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath);
 void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha);
-void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff, char *printPath);
+void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool isDiff, char *printPath);
 int cmp_str(char *str1, char *str2, bool sameAlpha);
 int scanFilter(const struct dirent *info);
-void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *options);
+void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, bool options[OPTION_SIZE]);
 bool isCmpFirst(char *oriName, char *cmpName);
 int get_fileOrDir(char *path);
 char *getfileStr(int fileOrDir);

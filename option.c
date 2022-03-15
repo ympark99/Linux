@@ -14,6 +14,13 @@
 //todo : 디렉토리 -> 파일 비교시 여러줄 수정 처리됨
 //todo : cmpfile diff 출력 경로 : 그냥 findoper[2]넘기면 될듯
 
+//todo : 디렉토리 q, s, r
+//todo : 옵션 중복
+//todo : 파일 마지막줄 공백
+
+//todo : 파일 q 확인여러번나옴
+//todo : 2번 파일 확인
+
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath){
 	while(1){
         printf(">> ");
@@ -54,17 +61,17 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 				perror("index 존재 x");
 			}
 			else{
-				int inputOptions[OPTION_SIZE] = {0, }; // q s i r 옵션 여부 확인 배열
+				bool inputOptions[OPTION_SIZE] = {false, }; // q s i r 옵션 여부 확인 배열
 				for(int i = 1; i < IDXOPTION_SIZE; i++){
 					if(index_option[i] == NULL) continue;
 					if(strcmp(index_option[i], "q") == 0)
-						inputOptions[0]++;
+						inputOptions[0] = true;
 					else if(strcmp(index_option[i], "s") == 0)
-						inputOptions[1]++;
+						inputOptions[1] = true;
 					else if(strcmp(index_option[i], "i") == 0)
-						inputOptions[2]++;
+						inputOptions[2] = true;
 					else if(strcmp(index_option[i], "r") == 0)
-						inputOptions[3]++;
+						inputOptions[3] = true;
 					else{
 						perror("OPTION 존재 x");// 이상한 값 입력시
 						nextStep = false;
@@ -72,19 +79,12 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 					}
 				}
 
-				for(int i = 0; i < OPTION_SIZE; i++){
-					if(inputOptions[i] > 1){
-						perror("같은 option 여러 번 입력");
-						nextStep = false;
-						break;
-					}
-				}
 				if(nextStep){
 					if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
 						// todo: 옵션 중복가능이므로 index_optiond으로 넘겨주기
-						index_option[1] == NULL? cmp_file(fileList[0].path, fileList[cmpIdx].path, false) : cmp_fileOption(fileList[0].path, fileList[cmpIdx].path, index_option[1], false, NULL);
+						index_option[1] == NULL? cmp_file(fileList[0].path, fileList[cmpIdx].path, false) : cmp_fileOption(fileList[0].path, fileList[cmpIdx].path, inputOptions, false, NULL);
 					else if(fileOrDir == 2)
-						cmp_dir(inputPath, cmpIdx, fileList, index_option[1]); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
+						cmp_dir(inputPath, cmpIdx, fileList, inputOptions); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
 					break;
 				}
 			}
@@ -258,8 +258,8 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	fclose(cmpFp);
 }
 
-// 파일비교 q, s 옵션 (isDiff : 0 -> ssu_index에서, 1 -> diff에서)
-void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff, char *printPath){
+// 파일비교 q, s, 디렉토리 i옵션 (fromDir : 0 -> ssu_index에서, 1 -> diff에서)
+void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool fromDir, char *printPath){
 	bool isSame = true; // 같은지 확인
 	char subOriPath[BUF_SIZE]; // 원본파일 path
 	strcpy(subOriPath, oriPath);
@@ -294,21 +294,29 @@ void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff, ch
 		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 		cmpLineIdx++;
 
-		if((strcmp(readLine, readCmpLine) != 0)){ // 내용 다를경우
-			// diff에서 호출했을 경우 출력 후 리턴
-			if(isDiff){
-				printf("diff %s %s\n", printPath, subCmpPath);
+		if(cmp_str(readLine, readCmpLine, options[2]) != 0){ // 내용 다를경우
+			// 디렉토리에서 호출했을 경우 출력 후 리턴
+			if(fromDir){
+				if(options[2]) printf("diff -i %s %s\n", printPath, subCmpPath);
+				else printf("diff %s %s\n", printPath, subCmpPath);
 				return;
 			}
 			isSame = false;
-			// q 옵션일경우 출력 후 함수 종료
-			if((strcmp(options, "q") == 0)){
+			// i 옵션일경우 다른 내용 출력
+			if(options[2]){
+				cmp_file(oriPath, cmpPath, true);
+				return;		
+			}
+			// q 옵션일경우 출력
+			if(options[0]){
+				if(fromDir){
+					printf("diff %s %s\n", printPath, subCmpPath);
+				}				
 				printf("Files %s and %s differ\n", subOriPath, subCmpPath);
-				return;
 			}
 		}
 	}
-	if(isSame && strcmp(options, "s") == 0)  // s옵션인경우 출력
+	if(isSame && options[1])  // s옵션인경우 출력
 		printf("Files %s and %s are identical\n", subOriPath, subCmpPath);
 
 	fclose(fp);
@@ -330,7 +338,7 @@ int scanFilter(const struct dirent *info){
 }
 
 // 디렉토리 비교
-void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *options){
+void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, bool options[OPTION_SIZE]){
     struct dirent **oriList, **cmpList;
     int oriCnt, cmpCnt; // 원본 리스트 개수, 비교본 리스트 개수
 
@@ -414,11 +422,15 @@ void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *opti
 				else if((result_ori == 2) && (result_cmp == 2)){
 					printf("Common subdirectories: %s and %s\n", inputPath, subCmpPath);
 				}
-				// 내용 다른 경우(파일)
+				// 파일 비교 후 내용 다르면 diff 출력
 				else{
-					// todo : r 옵션, a에따른 sameAlpha
-					cmp_fileOption(oriPath, cmpPath, " ", true, inputPath); // diff 출력
-					cmp_file(oriPath, cmpPath, false); // 파일 비교
+					// todo : r 옵션
+
+					cmp_fileOption(oriPath, cmpPath, options, true, inputPath); // 내용 다르면 diff 출력
+					if(options[2]) // i 옵션인 경우
+						cmp_file(oriPath, cmpPath, true); // 파일 비교					
+					else
+						cmp_file(oriPath, cmpPath, false); // 파일 비교
 				}
 				cmpCheck[j] = true;
 				isCheck = true; // 출력 됐으므로 true
