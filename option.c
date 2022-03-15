@@ -14,12 +14,8 @@
 //todo : 디렉토리 -> 파일 비교시 여러줄 수정 처리됨
 //todo : cmpfile diff 출력 경로 : 그냥 findoper[2]넘기면 될듯
 
-//todo : 디렉토리 q, s, r
-//todo : 옵션 중복
+//todo : 디렉토리 r
 //todo : 파일 마지막줄 공백
-
-//todo : 파일 q 확인여러번나옴
-//todo : 2번 파일 확인
 
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath){
 	while(1){
@@ -297,27 +293,31 @@ void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], boo
 		if(cmp_str(readLine, readCmpLine, options[2]) != 0){ // 내용 다를경우
 			// 디렉토리에서 호출했을 경우 출력 후 리턴
 			if(fromDir){
+				if(options[0]) printf("Files %s and %s differ\n", printPath, subCmpPath);
 				if(options[2]) printf("diff -i %s %s\n", printPath, subCmpPath);
 				else printf("diff %s %s\n", printPath, subCmpPath);
 				return;
 			}
-			isSame = false;
-			// i 옵션일경우 다른 내용 출력
-			if(options[2]){
-				cmp_file(oriPath, cmpPath, true);
-				return;		
-			}
-			// q 옵션일경우 출력
+			// q 옵션일경우 출력 후 리턴
 			if(options[0]){
-				if(fromDir){
-					printf("diff %s %s\n", printPath, subCmpPath);
-				}				
 				printf("Files %s and %s differ\n", subOriPath, subCmpPath);
+				return;
+			}		
+			// i 옵션 && s 옵션 아닐경우 다른 내용 출력
+			if(options[2] && !options[1]){
+				cmp_file(oriPath, cmpPath, true);
+				return;
 			}
+			isSame = false;
 		}
 	}
-	if(isSame && options[1])  // s옵션인경우 출력
+	if(isSame && options[1]){  // s옵션인경우 출력
+		if(fromDir){
+			printf("Files %s and %s are identical\n", printPath, subCmpPath);
+			return;
+		}
 		printf("Files %s and %s are identical\n", subOriPath, subCmpPath);
+	}
 
 	fclose(fp);
 	fclose(cmpFp);
@@ -426,11 +426,13 @@ void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, bool optio
 				else{
 					// todo : r 옵션
 
-					cmp_fileOption(oriPath, cmpPath, options, true, inputPath); // 내용 다르면 diff 출력
-					if(options[2]) // i 옵션인 경우
-						cmp_file(oriPath, cmpPath, true); // 파일 비교					
-					else
-						cmp_file(oriPath, cmpPath, false); // 파일 비교
+					cmp_fileOption(oriPath, cmpPath, options, true, inputPath); // 내용 다르면 diff 출력등 옵션
+					if(!options[0] && !options[1]){ // q나 s 옵션 아닐 경우만 내용 비교
+						if(options[2]) // i 옵션인 경우
+							cmp_file(oriPath, cmpPath, true); // 파일 비교					
+						else
+							cmp_file(oriPath, cmpPath, false); // 파일 비교
+					}
 				}
 				cmpCheck[j] = true;
 				isCheck = true; // 출력 됐으므로 true
