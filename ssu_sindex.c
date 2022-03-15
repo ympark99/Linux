@@ -10,9 +10,6 @@
 #include "ssu_sindex.h"
 #include "option.h"
 
-//todo : error -> 디렉토리 함수 갔다오면 절대경로 변환 안됨
-//-> 상대경로 seg error
-
 struct fileLists fileList[LMAX]; // 출력 리스트 구조체 선언
 int listIdx = 0; // 출력 리스트 index
 
@@ -149,8 +146,6 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	else if(listIdx > 1) 
 		option(fileOrDir, fileList, listIdx, findOper[1]); // listIdx > 1이면 옵션 프로세스 실행
 }
-
-// todo : 디렉토리 하위파일 재귀적으로 합 구하기
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
 // 비교 파일 절대경로, / + 원본 파일 이름, 원본 파일크기

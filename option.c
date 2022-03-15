@@ -31,9 +31,15 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 		char *ptr = strtok(oper, " "); // 공백 기준으로 문자열 자르기
 
 		int idx = 0;
-		// [0] : INDEX , [1] : OPTION or NULL
+		bool nextStep = true; // 계속 진행할지 판단
+		// [0] : INDEX , [1] ~ [4] : OPTION or NULL
 		while (ptr != NULL){
 			if(idx < IDXOPTION_SIZE) index_option[idx] = ptr;
+			else{
+				perror("option 입력 초과");
+				nextStep = false;
+				break;
+			}
 			idx++;
 			ptr = strtok(NULL, " ");
 		}
@@ -48,19 +54,46 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 				perror("index 존재 x");
 			}
 			else{
-				if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
-					// todo: 옵션 중복가능이므로 index_optiond으로 넘겨주기
-					index_option[1] == NULL? cmp_file(fileList[0].path, fileList[cmpIdx].path) : cmp_fileOption(fileList[0].path, fileList[cmpIdx].path, index_option[1], false, NULL);
-				else if(fileOrDir == 2)
-					cmp_dir(inputPath, cmpIdx, fileList, index_option[1]); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
-				break;
+				int inputOptions[OPTION_SIZE] = {0, }; // q s i r 옵션 여부 확인 배열
+				for(int i = 1; i < IDXOPTION_SIZE; i++){
+					if(index_option[i] == NULL) continue;
+					if(strcmp(index_option[i], "q") == 0)
+						inputOptions[0]++;
+					else if(strcmp(index_option[i], "s") == 0)
+						inputOptions[1]++;
+					else if(strcmp(index_option[i], "i") == 0)
+						inputOptions[2]++;
+					else if(strcmp(index_option[i], "r") == 0)
+						inputOptions[3]++;
+					else{
+						perror("OPTION 존재 x");// 이상한 값 입력시
+						nextStep = false;
+						break;
+					}
+				}
+
+				for(int i = 0; i < OPTION_SIZE; i++){
+					if(inputOptions[i] > 1){
+						perror("같은 option 여러 번 입력");
+						nextStep = false;
+						break;
+					}
+				}
+				if(nextStep){
+					if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
+						// todo: 옵션 중복가능이므로 index_optiond으로 넘겨주기
+						index_option[1] == NULL? cmp_file(fileList[0].path, fileList[cmpIdx].path, false) : cmp_fileOption(fileList[0].path, fileList[cmpIdx].path, index_option[1], false, NULL);
+					else if(fileOrDir == 2)
+						cmp_dir(inputPath, cmpIdx, fileList, index_option[1]); // 디렉토리 비교 실행(입력 INDEX, 파일 리스트, 입력 옵션)
+					break;
+				}
 			}
 		}
 	}
 }
 
 // 파일 비교
-void cmp_file(char *oriPath, char *cmpPath){
+void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	char line[BUF_SIZE], cmpLine[BUF_SIZE];
 	char *readLine, *readCmpLine;
 	FILE *fp = fopen(oriPath, "r"); // 원본 파일
@@ -84,8 +117,8 @@ void cmp_file(char *oriPath, char *cmpPath){
 		int nearCmpIdx = BUF_SIZE; // 가장 가까운 비교 줄
 
 		bool isEdit = false; // 수정하는지 확인하는 함수(마지막 제외)
-
-		if(strcmp(readLine, readCmpLine) != 0){ // 다르면 나올때까지 비교파일 탐색
+		
+		if(cmp_str(readLine, readCmpLine, sameAlpha) != 0){ // 다르면 나올때까지 비교파일 탐색
 			int startLine = lineIdx; // 원본파일 시작 라인(읽은 후)
 			int cmpStartLine = cmpLineIdx; // 비교파일 시작 라인(읽은 후)
 			bool doOriSeek = true;
@@ -96,7 +129,7 @@ void cmp_file(char *oriPath, char *cmpPath){
 				cmpLineIdx++;
 
 				// 추가 처리 : 탐색하다 같은 줄 나온 경우
-				if(strcmp(readLine, readCmpLine) == 0){
+				if(cmp_str(readLine, readCmpLine, sameAlpha) == 0){
 					// 상황별 추가 포맷 출력
 					if(cmpStartLine == (cmpLineIdx - 1))
 						printf("%da%d\n", lineIdx - 1, cmpStartLine);
@@ -129,7 +162,7 @@ void cmp_file(char *oriPath, char *cmpPath){
 					readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 					cmpLineIdx++;
 					// 문장 일치시
-					if(strcmp(readLine, readCmpLine) == 0){
+					if(cmp_str(readLine, readCmpLine, sameAlpha) == 0){
 						// 삭제 처리 : 일치한 문장 라인이 비교시작 라인일경우
 						if(cmpLineIdx == cmpStartLine){
 							//상황별 삭제 포맷 출력
@@ -161,7 +194,7 @@ void cmp_file(char *oriPath, char *cmpPath){
 									readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
 									readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 
-									if(strcmp(readLine, readCmpLine) == 0 && strcmp(readLine, "\n") != 0){
+									if(cmp_str(readLine, readCmpLine, sameAlpha) == 0 && strcmp(readLine, "\n") != 0){
 										nearCmpIdx = cmpLineIdx;
 										nearOriIdx = lineIdx;				
 									}
@@ -282,6 +315,12 @@ void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff, ch
 	fclose(cmpFp);
 }
 
+// strcmp or strcasecmp 진행, sameAlpha 일경우 대소문자 비교 x
+int cmp_str(char *str1, char *str2, bool sameAlpha){
+	if(sameAlpha) return strcasecmp(str1, str2);
+	return strcmp(str1, str2);
+}
+
 // scandir 필터(. 과 .. 제거)
 int scanFilter(const struct dirent *info){
 	if(strcmp(info->d_name, ".") == 0 || strcmp(info->d_name, "..") == 0){
@@ -377,9 +416,9 @@ void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *opti
 				}
 				// 내용 다른 경우(파일)
 				else{
-					// todo : r 옵션
+					// todo : r 옵션, a에따른 sameAlpha
 					cmp_fileOption(oriPath, cmpPath, " ", true, inputPath); // diff 출력
-					cmp_file(oriPath, cmpPath); // 파일 비교
+					cmp_file(oriPath, cmpPath, false); // 파일 비교
 				}
 				cmpCheck[j] = true;
 				isCheck = true; // 출력 됐으므로 true

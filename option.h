@@ -9,6 +9,10 @@
     #define IDXOPTION_SIZE 5
 #endif
 
+#ifndef OPTION_SIZE
+    #define OPTION_SIZE 4
+#endif
+
 #ifndef DATEFORMAT_SIZE
     #define DATEFORMAT_SIZE 36
 #endif
@@ -35,8 +39,9 @@ struct fileLists{
 };
 
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath);
-void cmp_file(char *oriPath, char *cmpPath);
+void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha);
 void cmp_fileOption(char *oriPath, char *cmpPath, char *options, bool isDiff, char *printPath);
+int cmp_str(char *str1, char *str2, bool sameAlpha);
 int scanFilter(const struct dirent *info);
 void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, char *options);
 bool isCmpFirst(char *oriName, char *cmpName);
