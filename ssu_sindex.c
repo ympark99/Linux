@@ -10,8 +10,6 @@
 #include "ssu_sindex.h"
 #include "option.h"
 
-//todo : find test . 할때 원본 또 포함하는거 방지
-
 struct fileLists fileList[LMAX]; // 출력 리스트 구조체 선언
 int listIdx = 0; // 출력 리스트 index
 
@@ -19,6 +17,7 @@ long long sumDirSize; // 하위 파일들 합친 디렉토리 크기
 
 void ssu_sindex(){
 	while (1){
+		sumDirSize = 0; // 디렉토리 크기 변수 초기화
 		char *oper = malloc(sizeof(char) * BUF_SIZE);
 		printf("20182615> "); // 프롬프트 출력
 		fgets(oper, BUF_SIZE, stdin); // 명령어 입력
@@ -86,6 +85,9 @@ void print_inst(){
 
 // find 함수 : findOper[1] : 원본 경로, findOper[2] : 비교 경로
 void find_first(char *findOper[FINDOPER_SIZE]){
+	char oriFileName[BUF_SIZE]; // 최초 입력 경로 저장
+	strcpy(oriFileName, findOper[1]);
+
 	// 상대경로인 경우 절대경로로 변환(원본 FILENAME)
 	if(findOper[1][0] != '/'){
 		char buf[BUF_SIZE];
@@ -111,7 +113,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	int fileOrDir = 0; // 1 : 파일, 2 : 디렉토리
 	fileOrDir = check_fileOrDir(findOper[1]); // 파일형식 저장
 
-	long long oriSize;
+	long long oriSize = 0;
 	if(fileOrDir == 1){
 		oriSize = get_fileSize(findOper[1]);
 	}
@@ -143,10 +145,11 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	free(namelist);
 
 	dfs_findMatchFiles(findOper[2], fileName, oriSize, fileOrDir); // PATH부터 디렉토리 탐색 & 리스트 저장
+
 	if(listIdx == 1)
 		printf("(None)\n"); // 탐색결과 없으면 (None) 출력
 	else if(listIdx > 1) 
-		option(fileOrDir, fileList, listIdx, findOper); // listIdx > 1이면 옵션 프로세스 실행
+		option(fileOrDir, fileList, listIdx, findOper, oriFileName); // listIdx > 1이면 옵션 프로세스 실행
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
@@ -172,24 +175,25 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fi
 
 		// 이름 같은 파일/dir 발견할 경우
 		if(strcmp(fileName, strcat(cmpFileName, namelist[i]->d_name)) == 0){
-			long long cmpSize;
+			long long cmpSize = 0;
 			if(fileOrDir == 1) cmpSize = get_fileSize(cmpPath);
 			else{
 				get_dirSize(cmpPath);
 				cmpSize = sumDirSize;
 			}
-			// long long cmpSize = (fileOrDir == 1) ? get_fileSize(cmpPath) : get_dirSize(cmpPath);
-			// 파일/dir 크기 같으면 리스트 등록
-			if(oriSize == cmpSize){
+
+			// 파일/dir 크기 같고 && 원본과 같은 파일 아니면 리스트 등록
+			if(oriSize == cmpSize && strcmp(fileList[0].path, cmpPath) != 0 ){
 				save_fileInfo(cmpPath, oriSize); // 리스트에 등록
 				print_fileInfo();
 				listIdx++;
-				sumDirSize = 0; // dir 크기 초기화
-			};
+			}
+			sumDirSize = 0; // dir 크기 초기화
 		}
 		free(cmpFileName);
 
-		dfs_findMatchFiles(cmpPath, fileName, oriSize, fileOrDir); // dfs
+		if(strcmp(fileList[0].path, cmpPath) != 0) // 원본과 같은파일 아닐경우
+			dfs_findMatchFiles(cmpPath, fileName, oriSize, fileOrDir); // dfs
 
 		// 합쳤던 하위파일명 문자열 제거
 		char* ptr = strrchr(cmpPath, '/'); // 합쳤던 /하위파일명 포인터 연결

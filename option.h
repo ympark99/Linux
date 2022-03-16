@@ -42,7 +42,7 @@ struct fileLists{
 	char path[BUF_SIZE];
 };
 
-void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputOper[FINDOPER_SIZE]);
+void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputOper[FINDOPER_SIZE], char *oriFileName);
 void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha);
 void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool isDiff, char *inputOper[FINDOPER_SIZE]);
 int cmp_str(char *str1, char *str2, bool sameAlpha);

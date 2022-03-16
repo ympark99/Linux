@@ -13,8 +13,10 @@
 //todo : 마지막줄 공백인 처리 (fopen != NULL 등 이용)
 //todo : 디렉토리 -> 파일 비교시 여러줄 수정 처리됨
 
+//todo : 입력하위파일 출력도 비교처럼 바꾸기
+
 // 파일/디렉토리 , 파일리스트, 리스트 크기, 최초 입력 경로(절대경로 변환,)
-void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputOper[FINDOPER_SIZE]){
+void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputOper[FINDOPER_SIZE], char *oriFileName){
 	while(1){
         printf(">> ");
 
@@ -73,10 +75,8 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 				}
 
 				if(nextStep){
-					// 원본 path 절대경로이므로 디렉토리이름으로 바꿔주기
-					char* ptr = strrchr(inputOper[1], '/'); // 맨뒤 파일(디렉토리) 이름
-					strcpy(inputOper[1], ptr);
-					memmove(inputOper[1], inputOper[1] + 1, strlen(inputOper[1])); // 맨앞'/'제거
+					// 출력할 path입력한 FILENAME으로 바꿔주기
+					strcpy(inputOper[1], oriFileName);
 
 					// 비교경로 : 비교할 path - 최초 입력 경로
 					int cutIdx = strlen(inputOper[2]); // 비교할 path에서 자를 인덱스
