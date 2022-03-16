@@ -14,11 +14,7 @@
 //todo : 디렉토리 -> 파일 비교시 여러줄 수정 처리됨
 //todo : cmpfile diff 출력 경로 : 그냥 findoper[2]넘기면 될듯
 
-//todo : 디렉토리 r
 //todo : 파일 마지막줄 공백
-//todo : 디렉토리 i (q,s)동시 사용시 diff i 출력됨(diff무조건출력됨)
-//todo : 디렉토리 q 사용시 diff도출력됨
-//todo : diff r출력
 
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath){
 	while(1){
@@ -260,7 +256,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	fclose(cmpFp);
 }
 
-// 파일비교 q, s, 디렉토리 i옵션 (fromDir : 0 -> ssu_index에서, 1 -> diff에서)
+// 파일비교 q, s, 디렉토리 i, r옵션 (fromDir : 0 -> ssu_index에서, 1 -> 디렉토리 함수에서)
 void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool fromDir, char *printPath){
 	bool isSame = true; // 같은지 확인
 	char subOriPath[BUF_SIZE]; // 원본파일 path
@@ -299,11 +295,20 @@ void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], boo
 		if(cmp_str(readLine, readCmpLine, options[2]) != 0){ // 내용 다를경우
 			// 디렉토리에서 호출했을 경우 출력 후 리턴
 			if(fromDir){
-				if(options[0]) printf("Files %s and %s differ\n", printPath, subCmpPath);
-				if(options[2]) printf("diff -i %s %s\n", printPath, subCmpPath);
-				else printf("diff %s %s\n", printPath, subCmpPath);
+				// r 옵션
+				if(options[3]){
+					if(options[0]) printf("Files %s and %s differ\n", printPath, subCmpPath); // r, q 옵션
+					else if(options[2]) printf("diff -i -r %s %s\n", printPath, subCmpPath); // r, i 옵션		
+					else printf("diff %s %s\n", printPath, subCmpPath); // r 옵션			
+				}
+				else{
+					if(options[0]) printf("Files %s and %s differ\n", printPath, subCmpPath); // q 옵션
+					else if(options[2]) printf("diff -i %s %s\n", printPath, subCmpPath); // i 옵션
+					else printf("diff %s %s\n", printPath, subCmpPath); // 옵션 x
+				}
 				return;
 			}
+			// 파일 옵션인경우
 			// q 옵션일경우 출력 후 리턴
 			if(options[0]){
 				printf("Files %s and %s differ\n", subOriPath, subCmpPath);
@@ -424,8 +429,8 @@ void cmp_dir(char *inputDir, char *oriPath, char *cmpPath, bool options[OPTION_S
 				}
 				// 파일 비교 후 내용 다르면 diff 출력
 				else{
-					cmp_fileOption(oriPath, cmpPath, options, true, inputDir); // 내용 다르면 diff 출력등 옵션
-					if(!options[0] && !options[1]){ // q나 s 옵션 아닐 경우만 내용 비교
+					cmp_fileOption(oriPath, cmpPath, options, true, inputDir); // 파일 단순 비교, 다를 경우 diff 출력
+					if(!options[0]){ // q 옵션 아닐 경우만 내용 비교
 						if(options[2]) // i 옵션인 경우
 							cmp_file(oriPath, cmpPath, true); // 파일 비교					
 						else
