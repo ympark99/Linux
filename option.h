@@ -5,6 +5,10 @@
     #define BUF_SIZE 1024
 #endif
 
+#ifndef FINDOPER_SIZE
+    #define FINDOPER_SIZE 3
+#endif
+
 #ifndef IDXOPTION_SIZE
     #define IDXOPTION_SIZE 5
 #endif
@@ -38,12 +42,12 @@ struct fileLists{
 	char path[BUF_SIZE];
 };
 
-void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputPath);
+void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputOper[FINDOPER_SIZE]);
 void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha);
-void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool isDiff, char *printPath);
+void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool isDiff, char *inputOper[FINDOPER_SIZE]);
 int cmp_str(char *str1, char *str2, bool sameAlpha);
 int scanFilter(const struct dirent *info);
-void cmp_dir(char *inputDir, char *oriPath, char *cmpPath, bool options[OPTION_SIZE]);
+void cmp_dir(char *inputOper[FINDOPER_SIZE], char *oriPath, char *cmpPath, bool options[OPTION_SIZE]);
 bool isCmpFirst(char *oriName, char *cmpName);
 int get_fileOrDir(char *path);
 char *getfileStr(int fileOrDir);
