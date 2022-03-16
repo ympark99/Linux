@@ -256,7 +256,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	fclose(cmpFp);
 }
 
-// 파일비교 q, s, 디렉토리 i, r옵션 (fromDir : 0 -> ssu_index에서, 1 -> 디렉토리 함수에서)
+// 파일, 디렉토리 옵션 (fromDir : 0 -> ssu_index에서, 1 -> 디렉토리 함수에서)
 void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool fromDir, char *printPath){
 	bool isSame = true; // 같은지 확인
 	char subOriPath[BUF_SIZE]; // 원본파일 path
@@ -314,9 +314,14 @@ void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], boo
 				printf("Files %s and %s differ\n", subOriPath, subCmpPath);
 				return;
 			}		
-			// i 옵션 && s 옵션 아닐경우 다른 내용 출력
-			if(options[2] && !options[1]){
+			// i 옵션일경우 다른 내용 출력
+			if(options[2]){
 				cmp_file(oriPath, cmpPath, true);
+				return;
+			}
+			// s 옵션인경우 다른 내용 출력
+			else if(options[1]){
+				cmp_file(oriPath, cmpPath, false);
 				return;
 			}
 			isSame = false;
