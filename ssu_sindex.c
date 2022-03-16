@@ -10,6 +10,8 @@
 #include "ssu_sindex.h"
 #include "option.h"
 
+//todo : find test . 할때 원본 또 포함하는거 방지
+
 struct fileLists fileList[LMAX]; // 출력 리스트 구조체 선언
 int listIdx = 0; // 출력 리스트 index
 

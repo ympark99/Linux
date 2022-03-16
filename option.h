@@ -43,7 +43,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha);
 void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool isDiff, char *printPath);
 int cmp_str(char *str1, char *str2, bool sameAlpha);
 int scanFilter(const struct dirent *info);
-void cmp_dir(char *inputPath, int cmpIdx, struct fileLists *filelist, bool options[OPTION_SIZE]);
+void cmp_dir(char *inputDir, char *oriPath, char *cmpPath, bool options[OPTION_SIZE]);
 bool isCmpFirst(char *oriName, char *cmpName);
 int get_fileOrDir(char *path);
 char *getfileStr(int fileOrDir);
