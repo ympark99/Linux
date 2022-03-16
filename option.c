@@ -10,10 +10,7 @@
 #include <stdbool.h>
 #include "option.h"
 
-//todo : 마지막줄 공백인 처리 (fopen != NULL 등 이용)
-//todo : 디렉토리 -> 파일 비교시 여러줄 수정 처리됨
-
-//todo : 입력하위파일 출력도 비교처럼 바꾸기
+//todo : 디렉토리 -> 파일 비교 테스트
 
 // 파일/디렉토리 , 파일리스트, 리스트 크기, 최초 입력 경로(절대경로 변환,)
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputOper[FINDOPER_SIZE], char *oriFileName){
@@ -104,18 +101,20 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	FILE *fp = fopen(oriPath, "r"); // 원본 파일
 	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
 
-	// FILE *fp = fopen("test/e.txt", "r"); // 테스트 원본 파일
-	// FILE *cmpFp = fopen("test/f.txt", "r"); // 테스트 비교할 파일
+	// FILE *fp = fopen("1.txt", "r"); // 테스트 원본 파일
+	// FILE *cmpFp = fopen("2.txt", "r"); // 테스트 비교할 파일
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
 
 	while (!feof(fp)){
 		int startFtell = ftell(fp); // 원본파일 다시 탐색시 시작할 라인(읽기 전)
 		readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+		if(readLine == NULL) break;
 		lineIdx++;
 
 		int cmpStartFtell = ftell(cmpFp); // 비교파일 다시 탐색시 시작할 라인(읽기 전)
 		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+		if(readCmpLine == NULL) break;
 		cmpLineIdx++;
 
 		int nearOriIdx = BUF_SIZE; // 비교본 시작라인 가장 가까운 원본 줄
@@ -131,6 +130,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 			// 원본파일 비교 시작줄 나올떄까지 탐색
 			while (!feof(cmpFp)){
 				readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+				if(readCmpLine == NULL) break;
 				cmpLineIdx++;
 
 				// 추가 처리 : 탐색하다 같은 줄 나온 경우
@@ -157,6 +157,8 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 			// 삭제, 수정 : 비교 파일 끝까지 안나오면 원본 줄 끝까지 반복 -> 가장 비교본시작줄과 가까운 곳 찾기
 			while (!feof(fp) && doOriSeek){
 				readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+				if(readLine == NULL) break;
+				
 				lineIdx++;
 
 				fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
@@ -165,6 +167,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 				// 비교시작 라인부터 탐색
 				while (!feof(cmpFp)){
 					readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+					if(readCmpLine == NULL) break;
 					cmpLineIdx++;
 					// 문장 일치시
 					if(cmp_str(readLine, readCmpLine, sameAlpha) == 0){
@@ -181,7 +184,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 								printf("< ");
 								readLine = fgets(line, BUF_SIZE, fp); // 비교파일 한 줄 읽기
 								printf("%s", readLine);
-							}
+							}						
 							readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
 							// 원본 반복 탈출
 							doOriSeek = false;
@@ -237,25 +240,33 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
                 // 수정 내용 출력 : 원본
 				fseek(fp, startFtell, SEEK_SET); // 원본 비교시작 라인으로 이동
                 for(int i = startLine; i < lineIdx; i++){
-					if(readLine == NULL) break;
                     printf("< ");
                     readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
                     printf("%s", readLine);
                 }
+
+				bool isLastNull = false; // 마지막줄 공백인경우 No newline 출력 x
+				if(readLine[strlen(readLine) - 1] == '\n') isLastNull = true;
+
                 readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
-				if(feof(fp)) printf("\n\\ No newline at end of file\n"); // 마지막 줄인경우 출력
+
+				if(feof(fp) && !isLastNull) printf("\n\\ No newline at end of file\n"); // 마지막 줄인경우 출력
                 printf("---\n");
                 // 수정 내용 출력 : 비교
                 fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
                 for(int i = cmpStartLine; i < cmpLineIdx; i++){
-					if(readCmpLine == NULL) break;
                     printf("> ");
                     readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
                     printf("%s", readCmpLine);
                 }
+
+				isLastNull = false;
+				if(readCmpLine[strlen(readCmpLine) - 1] == '\n') isLastNull = true;
+
                 readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
-				if(feof(cmpFp)) printf("\n\\ No newline at end of file\n"); // 마지막 줄인경우 출력
-			}			
+
+				if(feof(cmpFp) && !isLastNull) printf("\n\\ No newline at end of file\n"); // 마지막 줄인경우 출력
+			}
 		}
 	}
 	fclose(fp);
