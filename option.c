@@ -101,21 +101,78 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	FILE *fp = fopen(oriPath, "r"); // 원본 파일
 	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
 
-	// FILE *fp = fopen("1.txt", "r"); // 테스트 원본 파일
-	// FILE *cmpFp = fopen("2.txt", "r"); // 테스트 비교할 파일
+	// FILE *fp = fopen("2.txt", "r"); // 테스트 원본 파일
+	// FILE *cmpFp = fopen("1.txt", "r"); // 테스트 비교할 파일
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
+	int startFtell, cmpStartFtell = 0;
 
 	while (!feof(fp)){
-		int startFtell = ftell(fp); // 원본파일 다시 탐색시 시작할 라인(읽기 전)
+		startFtell = ftell(fp); // 원본파일 다시 탐색시 시작할 라인(읽기 전)
 		readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
-		if(readLine == NULL) break;
 		lineIdx++;
 
-		int cmpStartFtell = ftell(cmpFp); // 비교파일 다시 탐색시 시작할 라인(읽기 전)
+		// 원본 마지막 줄 공백인경우 -> 비교본이 남았으면 추가 처리
+		if(readLine == NULL){
+			int cmpStartLine = cmpLineIdx + 1; // 비교본은 아직 안읽었으므로 +1
+			cmpStartFtell = ftell(cmpFp); // 현재 위치 저장
+
+			// 마지막 인덱스 알기위해 null까지 읽음
+			while (readCmpLine != NULL){
+				readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+				cmpLineIdx++;
+			}			
+
+			if(cmpStartLine > cmpLineIdx - 1) break;
+
+			// 상황별 추가 포맷 출력
+			if(cmpStartLine == (cmpLineIdx - 1))
+				printf("%da%d\n", lineIdx - 1, cmpStartLine);
+			else 
+				printf("%da%d,%d\n", lineIdx - 1, cmpStartLine, cmpLineIdx - 1);
+
+			// 추가된 파일 내용 출력
+			fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
+			for(int i = cmpStartLine; i < cmpLineIdx; i++){
+				printf("> ");
+				readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+				printf("%s", readCmpLine);
+			}
+
+			break;
+		}
+
+		cmpStartFtell = ftell(cmpFp); // 비교파일 다시 탐색시 시작할 라인(읽기 전)
 		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
-		if(readCmpLine == NULL) break;
 		cmpLineIdx++;
+
+		// 비교본 마지막 줄 공백일 경우 -> 원본이 남았으면 삭제 처리
+		if(readCmpLine == NULL){
+			//상황별 삭제 포맷 출력
+			int startLine = lineIdx;
+
+			// 마지막 인덱스 알기위해 null까지 읽음
+			while (readLine != NULL){
+				readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+				lineIdx++;
+			}
+
+			if(startLine > lineIdx - 1) break;
+			
+			// 상황별 삭제 포맷 출력
+			if(startLine == lineIdx - 1)
+				printf("%dd%d\n", startLine, cmpLineIdx - 1);
+			else
+				printf("%d,%dd%d\n", startLine, lineIdx - 1, cmpLineIdx - 1);
+			// 삭제된 내용 출력
+			fseek(fp, startFtell, SEEK_SET); // 원본 비교시작 라인으로 이동
+			for(int i = startLine; i < lineIdx; i++){
+				printf("< ");
+				readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+				printf("%s", readLine);
+			}		
+			break;
+		}
 
 		int nearOriIdx = BUF_SIZE; // 비교본 시작라인 가장 가까운 원본 줄
 		int nearCmpIdx = BUF_SIZE; // 가장 가까운 비교 줄
@@ -182,9 +239,9 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 							fseek(fp, startFtell, SEEK_SET); // 원본 비교시작 라인으로 이동
 							for(int i = startLine; i < lineIdx; i++){
 								printf("< ");
-								readLine = fgets(line, BUF_SIZE, fp); // 비교파일 한 줄 읽기
+								readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
 								printf("%s", readLine);
-							}						
+							}			
 							readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
 							// 원본 반복 탈출
 							doOriSeek = false;
