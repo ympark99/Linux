@@ -53,7 +53,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 				perror("index 존재 x");
 			}
 			else{
-				bool inputOptions[OPTION_SIZE] = {false, }; // q s i r 옵션 여부 확인 배열
+				bool inputOptions[OPTION_SIZE] = {false, }; // q s i r l 옵션 여부 확인 배열
 				for(int i = 1; i < IDXOPTION_SIZE; i++){
 					if(index_option[i] == NULL) continue;
 					if(strcmp(index_option[i], "q") == 0)
@@ -64,6 +64,8 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 						inputOptions[2] = true;
 					else if(strcmp(index_option[i], "r") == 0)
 						inputOptions[3] = true;
+					else if(strcmp(index_option[i], "l") == 0) // 추가기능 : l 옵션
+						inputOptions[4] = true;						
 					else{
 						perror("OPTION 존재 x");// 이상한 값 입력시
 						nextStep = false;
@@ -101,8 +103,6 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	FILE *fp = fopen(oriPath, "r"); // 원본 파일
 	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
 
-	// FILE *fp = fopen("2.txt", "r"); // 테스트 원본 파일
-	// FILE *cmpFp = fopen("1.txt", "r"); // 테스트 비교할 파일
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
 	int startFtell, cmpStartFtell = 0;
@@ -332,10 +332,13 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 
 // 파일, 디렉토리 옵션 (fromDir : 0 -> ssu_index에서, 1 -> 디렉토리 함수에서)
 void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool fromDir, char *inputOper[FINDOPER_SIZE]){
-	bool isSame = true; // 같은지 확인
+	bool isSame = true; // 파일내용이 같은지 확인하는 변수
 
 	char line[BUF_SIZE], cmpLine[BUF_SIZE];
 	char *readLine, *readCmpLine;
+
+	// 추가기능 : l 옵션인 경우, 라인 줄 수 비교 및 출력
+	if(options[4]) cmp_length(oriPath, cmpPath, inputOper);
 	
 	FILE *fp = fopen(oriPath, "r"); // 원본 파일
 	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
@@ -392,6 +395,40 @@ void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], boo
 		}
 		printf("Files %s and %s are identical\n", inputOper[1], inputOper[2]);
 	}
+
+	fclose(fp);
+	fclose(cmpFp);
+}
+
+// 추가기능 : l옵션 -> 두 파일의 라인 수(set nu)를 출력하고, 비교 메시지 출력
+void cmp_length(char *oriPath, char *cmpPath, char *inputOper[FINDOPER_SIZE]){
+	FILE *fp = fopen(oriPath, "r"); // 원본 파일
+	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
+
+	char line[BUF_SIZE], cmpLine[BUF_SIZE];
+
+	int lineIdx = 0; // 원본 현재 라인
+	int cmpLineIdx = 0; // 비교파일 현재 라인
+	
+	while (!feof(fp)){
+		fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+		lineIdx++;
+	}
+
+	while (!feof(cmpFp)){
+		fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+		cmpLineIdx++;
+	}
+
+	// 결과 출력
+	printf("%s lines: %d, %s lines: %d\n", inputOper[1], lineIdx, inputOper[2], cmpLineIdx);
+	// 비교결과 출력
+	if(lineIdx > cmpLineIdx)
+		printf("File %s is longer than %s\n", inputOper[1], inputOper[2]);
+	else if(lineIdx == cmpLineIdx)
+		printf("Files %s and %s have same line length!\n", inputOper[1], inputOper[2]);
+	else
+		printf("File %s is shorter than %s\n", inputOper[1], inputOper[2]);
 
 	fclose(fp);
 	fclose(cmpFp);
