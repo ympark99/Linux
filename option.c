@@ -103,6 +103,9 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	FILE *fp = fopen(oriPath, "r"); // 원본 파일
 	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
 
+	// FILE *fp = fopen("dir1/a.txt", "r"); // 원본 파일
+	// FILE *cmpFp = fopen("dir1/b.txt", "r"); // 비교할 파일	
+
 	int lineIdx = 0; // 원본 현재 라인
 	int cmpLineIdx = 0; // 비교파일 현재 라인
 	int startFtell, cmpStartFtell = 0;
@@ -121,7 +124,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 			while (readCmpLine != NULL){
 				readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 				cmpLineIdx++;
-			}			
+			}
 
 			if(cmpStartLine > cmpLineIdx - 1) break;
 
@@ -176,6 +179,9 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 
 		int nearOriIdx = BUF_SIZE; // 비교본 시작라인 가장 가까운 원본 줄
 		int nearCmpIdx = BUF_SIZE; // 가장 가까운 비교 줄
+		int lcsOriIdx = 0; // lcs로 구한 원본 라인 인덱스
+		int lcsCmpIdx = 0; // lcs로 구한 비교본 라인 인덱스
+		int lcsLength = 0; // lcs최대 인덱스
 
 		bool isEdit = false; // 수정하는지 확인하는 함수(마지막 제외)
 		
@@ -212,12 +218,10 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 			}
 
 			// 삭제, 수정 : 비교 파일 끝까지 안나오면 원본 줄 끝까지 반복 -> 가장 비교본시작줄과 가까운 곳 찾기
-			while (!feof(fp) && doOriSeek){
+			while (!feof(fp) && doOriSeek){				
 				readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
 				if(readLine == NULL) break;
-				
 				lineIdx++;
-
 				fseek(cmpFp, cmpStartFtell, SEEK_SET); // 비교 시작 위치로 이동
 				cmpLineIdx = cmpStartLine - 1; // 비교 시작 라인(읽기전)으로 초기화
 
@@ -249,27 +253,55 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 
 						}
 						// 수정 처리
-						else{ // 비교본 시작라인과 가장 가까운 원본라인 구하기
-							// 공백일경우, 공백이 아닌 경우도 일치해야함
-							if(strcmp(readLine, "\n") == 0){
-								int bufFtell = ftell(fp);
-								int cmpBufFtell = ftell(cmpFp);
-								// 공백 아닐때까지 반복
+						else{
+							// lcs 구하기 
+							int lcsNow = 1; // 내용이 같은 라인 수
+							int bufFtell = ftell(fp); // 원본 위치 저장
+							int cmpBufFtell = ftell(cmpFp); // 비교 위치 저장
+
+							bool keepLcs = true; // 공백일 경우 계속 계산 진행할지 판별
+							// 공백일경우 다음 줄도 일치해야 lcs 구함
+							if(strcmp(readCmpLine, "\n") == 0){
 								while (!feof(fp) && !feof(cmpFp)){
 									readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
 									readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
-
-									if(cmp_str(readLine, readCmpLine, sameAlpha) == 0 && strcmp(readLine, "\n") != 0){
-										nearCmpIdx = cmpLineIdx;
-										nearOriIdx = lineIdx;				
+									// 두 파일 다 다음 줄도 공백일 경우 : 한번 더 테스트
+									if(cmp_str(readLine, readCmpLine, sameAlpha) == 0 && strcmp(readLine, "\n") == 0){
+										lcsNow++;
+									}
+									// 다음 줄이 일치하고 공백이 아닐경우 진행
+									else if(cmp_str(readLine, readCmpLine, sameAlpha) == 0 && strcmp(readLine, "\n") != 0){
+										lcsNow++;
+										keepLcs = true;
+										break;
+									}
+									else{ // 다음 줄이 일치하지 않을경우 진행 x -> 원본 라인은 그대로, 비교라인만 계속 비교
+										keepLcs = false;
+										strcpy(readLine, "\n"); // 원본라인 그대로여야 하므로 \n
+										fseek(fp, bufFtell, SEEK_SET);
+										fseek(cmpFp, cmpBufFtell, SEEK_SET);					
+										break;
+									}
+								}									
+							}					
+							if(keepLcs){
+								//todo : 마지막줄 공백인경우 테스트
+								while (!feof(fp) && !feof(cmpFp)){
+									readLine = fgets(line, BUF_SIZE, fp); // 원본파일 한 줄 읽기
+									readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
+									// 원본과 비교본 내용이 일치할경우
+									if(cmp_str(readLine, readCmpLine, sameAlpha) == 0){
+										lcsNow++; // 내용같은라인 + 1				
 									}
 								}
 								fseek(fp, bufFtell, SEEK_SET);
 								fseek(cmpFp, cmpBufFtell, SEEK_SET);
-							}
-							else if(cmpLineIdx < nearCmpIdx){ // 더 가까울 경우 인덱스, 라인 저장
-								nearCmpIdx = cmpLineIdx;
-								nearOriIdx = lineIdx;
+								// 가장 일치하는 라인이 많은경우 lcs 등록
+								if(lcsNow > lcsLength){
+									lcsLength = lcsNow;
+									lcsOriIdx = lineIdx;
+									lcsCmpIdx = cmpLineIdx;							
+								}	
 							}
 							isEdit = true;
 						}
@@ -279,11 +311,11 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 			// 수정 처리			
 			if(doOriSeek){
 				if(!isEdit && (feof(fp) && feof(cmpFp))){ // 파일 전체 끝난경우, 라인 저장
-					nearCmpIdx = cmpLineIdx + 1;
-					nearOriIdx = lineIdx + 1;
+					lcsCmpIdx = cmpLineIdx + 1;
+					lcsOriIdx = lineIdx + 1;					
 				}
-				cmpLineIdx = nearCmpIdx;
-				lineIdx = nearOriIdx;
+				cmpLineIdx = lcsCmpIdx;
+				lineIdx = lcsOriIdx;				
 
                 // 상황별 수정 포맷 출력
                 if(startLine == (lineIdx - 1) && cmpStartLine == (cmpLineIdx - 1))
