@@ -24,7 +24,7 @@
 void ssu_sindex();
 void print_inst();
 
-void find_first();
+void find_first(char *findOper[FINDOPER_SIZE]);
 void dfs_findMatchFiles(char *cmpPath, char *fileName, long long fileSize, int fileOrDir);
 int scandirFilter(const struct dirent *info);
 long long get_fileSize(char *path);
