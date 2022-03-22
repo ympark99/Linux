@@ -84,17 +84,17 @@ void print_inst(){
 	printf("   l : print line length and compare result\n");
 }
 
-// find 함수 : findOper[1] : 원본 경로, findOper[2] : 비교 경로
+// find 함수 : findOper[1] : 기준 경로, findOper[2] : 비교 경로
 void find_first(char *findOper[FINDOPER_SIZE]){
 	char oriFileName[BUF_SIZE]; // 최초 입력 경로 저장
 	strcpy(oriFileName, findOper[1]);
 
-	// 상대경로인 경우 절대경로로 변환(원본 FILENAME)
+	// 상대경로인 경우 절대경로로 변환(기준 FILENAME)
 	if(findOper[1][0] != '/'){
 		char buf[BUF_SIZE];
 		// 절대 경로가 NULL인경우 오류 발생
 		if(realpath(findOper[1], buf) == NULL){
-			perror("realpath error -> filename"); // todo : 전역변수 errno에 설정
+			perror("realpath error -> filename");
 			return;
 		}
 		// strcpy(findOper[1], buf);
@@ -105,7 +105,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 		char buf2[BUF_SIZE];
 		// 절대 경로가 NULL인경우 오류 발생
 		if(realpath(findOper[2], buf2) == NULL){
-			perror("realpath error -> path"); // todo : 전역변수 errno에 설정
+			perror("realpath error -> path");
 			return;
 		}
 		findOper[2] = buf2; // 변환한 절대경로 저장
@@ -128,7 +128,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 
 	// 리스트 출력
 	printf("Index Size Mode       Blocks Links UID  GID  Access          Change          Modify          Path\n");
-	save_fileInfo(findOper[1], oriSize); // 원본 파일(디렉토리) 리스트에 저장
+	save_fileInfo(findOper[1], oriSize); // 기준 파일(디렉토리) 리스트에 저장
 	print_fileInfo(); // 리스트 출력
 	listIdx++;
 
@@ -140,7 +140,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 
 	// 에러 있을 경우 에러 처리
 	if((cnt = scandir(findOper[2], &namelist, scandirFilter, alphasort)) == -1){
-		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno)); // todo : errno 설정
+		fprintf(stderr, "%s Directory Scan Error : %s \n", findOper[2], strerror(errno));
 		return;
 	}
 	free(namelist);
@@ -154,7 +154,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 }
 
 // scandir 통한 디렉토리 전체 목록 조회 후 파일 정보 탐색(dfs)
-// 비교 파일 절대경로, / + 원본 파일 이름, 원본 파일크기
+// 비교 파일 절대경로, / + 기준 파일 이름, 기준 파일크기
 void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fileOrDir){
 	// scandir 관련 선언
 	struct dirent **namelist;
@@ -183,7 +183,7 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fi
 				cmpSize = sumDirSize;
 			}
 
-			// 파일/dir 크기 같고 && 원본과 같은 파일 아니면 리스트 등록
+			// 파일/dir 크기 같고 && 기준과 같은 파일 아니면 리스트 등록
 			if(oriSize == cmpSize && strcmp(fileList[0].path, cmpPath) != 0 ){
 				save_fileInfo(cmpPath, oriSize); // 리스트에 등록
 				print_fileInfo();
@@ -193,7 +193,7 @@ void dfs_findMatchFiles(char *cmpPath, char *fileName, long long oriSize, int fi
 		}
 		free(cmpFileName);
 
-		if(strcmp(fileList[0].path, cmpPath) != 0) // 원본과 같은파일 아닐경우
+		if(strcmp(fileList[0].path, cmpPath) != 0) // 기준과 같은파일 아닐경우
 			dfs_findMatchFiles(cmpPath, fileName, oriSize, fileOrDir); // dfs
 
 		// 합쳤던 하위파일명 문자열 제거
@@ -240,7 +240,7 @@ void get_dirSize(char *path){
 
     // scandir로 하위파일 가져오기
 	if((cnt = scandir(path, &namelist, scandirFilter, alphasort)) == -1){
-		perror("scandir error\n"); // todo : errno 설정
+		perror("scandir error\n");
 		return;
 	}
 
