@@ -81,6 +81,7 @@ void print_inst(){
 	printf("   s : report when two files are the same\n");
 	printf("   i : ignore case differences in file contents\n");
 	printf("   r : recursivly compare any subdirectories found\n");
+	printf("   l : print line length and compare result\n");
 }
 
 // find 함수 : findOper[1] : 원본 경로, findOper[2] : 비교 경로
