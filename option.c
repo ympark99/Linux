@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include "option.h"
 
-// 파일/디렉토리 , 파일리스트, 리스트 크기, 최초 입력 경로(절대경로 변환), 입력한 파일 이름
+// 입력인자 :  파일/디렉토리 , 파일리스트, 리스트 크기, 최초 입력 경로(절대경로 변환), 입력한 파일 이름
 void option(int fileOrDir, struct fileLists *fileList, int listSize, char *inputOper[FINDOPER_SIZE], char *oriFileName){
 	while(1){
         printf(">> ");
@@ -52,6 +52,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 			}
 			else{
 				bool inputOptions[OPTION_SIZE] = {false, }; // q s i r l 옵션 여부 확인 배열
+				// 0 : q, 1 : s, 2 : i, 3 : r, 4 : l 옵션
 				for(int i = 1; i < IDXOPTION_SIZE; i++){
 					if(index_option[i] == NULL) continue;
 					if(strcmp(index_option[i], "q") == 0)
@@ -66,7 +67,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 						inputOptions[4] = true;						
 					else{
 						perror("OPTION 존재 x");// 이상한 값 입력시
-						nextStep = false;
+						nextStep = false; // 다시 INDEX OPTION 입력
 						break;
 					}
 				}
@@ -81,7 +82,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 					memmove(inputOper[2], inputOper[2] + cutIdx + 1, strlen(inputOper[2])); // '/'까지 제거하므로 +1
 
 					if(fileOrDir == 1) // 파일인 경우 파일 비교 실행
-						index_option[1] == NULL? 
+						index_option[1] == NULL? // 옵션 입력 여부에따라 cmp_file(), cmp_fileOption 실행
 							cmp_file(fileList[0].path, fileList[cmpIdx].path, false) : 
 							cmp_fileOption(fileList[0].path, fileList[cmpIdx].path, inputOptions, false, inputOper);
 					else if(fileOrDir == 2){	
@@ -94,7 +95,7 @@ void option(int fileOrDir, struct fileLists *fileList, int listSize, char *input
 	}
 }
 
-// 파일 비교
+// 파일 비교 (입력인자 : 기준 파일 경로, 비교 파일 경로, 대소문자 구분 없이 비교할지)
 void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 	char line[BUF_SIZE], cmpLine[BUF_SIZE];
 	char *readLine, *readCmpLine;
@@ -110,7 +111,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 		readLine = fgets(line, BUF_SIZE, fp); // 기준파일 한 줄 읽기
 		lineIdx++;
 
-		// 기준 마지막 줄 공백인경우 -> 비교본이 남았으면 추가 처리
+		// 기준 마지막 줄 끝난경우 -> 비교본이 남았으면 추가 처리
 		if(readLine == NULL){
 			int cmpStartLine = cmpLineIdx + 1; // 비교본은 아직 안읽었으므로 +1
 			cmpStartFtell = ftell(cmpFp); // 현재 위치 저장
@@ -136,9 +137,9 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 				readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 				printf("%s", readCmpLine);
 			}
-			bool isLastNull = false; // 마지막줄 공백인경우 No newline 출력 x
+			bool isLastNull = false; // 마지막줄 개행 없을경우 No newline 출력 x
 
-			if(readCmpLine[strlen(readCmpLine) - 1] == '\n') isLastNull = true; // 공백 없으면 마지막으로 판정
+			if(readCmpLine[strlen(readCmpLine) - 1] == '\n') isLastNull = true; // 개행 없으면 마지막으로 판정
 			readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
 			if(feof(cmpFp) && !isLastNull) printf("\n\\ No newline at end of file\n"); // 마지막 줄인경우 출력
 			break;
@@ -148,7 +149,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 		readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 비교파일 한 줄 읽기
 		cmpLineIdx++;
 
-		// 비교본 마지막 줄 공백일 경우 -> 기준이 남았으면 삭제 처리
+		// 비교 파일 마지막 줄 끝난 경우 -> 기준이 남았으면 삭제 처리
 		if(readCmpLine == NULL){
 			//상황별 삭제 포맷 출력
 			int startLine = lineIdx;
@@ -173,15 +174,15 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 				readLine = fgets(line, BUF_SIZE, fp); // 기준파일 한 줄 읽기
 				printf("%s", readLine);
 			}
-			bool isLastNull = false; // 마지막줄 공백인경우 No newline 출력 x
-			if(readLine[strlen(readLine) - 1] == '\n') isLastNull = true; // 공백 없으면 마지막으로 판정
+			bool isLastNull = false; // 마지막줄 개행 없을경우 No newline 출력 x
+			if(readLine[strlen(readLine) - 1] == '\n') isLastNull = true; // 개행 있는지 체크
 			readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
 			if(feof(fp) && !isLastNull) printf("\n\\ No newline at end of file\n"); // 마지막 줄인경우 출력			
 			break;
 		}
 
 		int lcsOriIdx = 0; // lcs로 구한 기준 라인 인덱스
-		int lcsCmpIdx = 0; // lcs로 구한 비교본 라인 인덱스
+		int lcsCmpIdx = 0; // lcs로 구한 비교 파일 라인 인덱스
 		int lcsLength = 0; // lcs최대 인덱스
 
 		bool isEdit = false; // 수정하는지 확인하는 함수(마지막 제외)
@@ -218,7 +219,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 				}
 			}
 
-			// 삭제, 수정 : 비교 파일 끝까지 안나오면 기준 줄 끝까지 반복 -> 가장 비교본시작줄과 가까운 곳 찾기
+			// 삭제, 수정 : 비교 파일 끝까지 안나오면 기준 줄 끝까지 반복
 			while (!feof(fp) && doOriSeek){
 				int preReadFtell = ftell(fp); // 추가로 기준파일 읽기 전 위치 저장
 				readLine = fgets(line, BUF_SIZE, fp); // 기준파일 한 줄 읽기
@@ -270,7 +271,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 
 									// 마지막 줄 개행없는 경우
 									if(readLine == NULL){
-										// 비교본 마지막줄, 기준 마지막줄이므로 lcs + 1
+										// 비교 파일 마지막줄, 기준 마지막줄이므로 lcs + 1
 										if(readCmpLine == NULL) lcsNow++;
 										fseek(fp, preReadFtell, SEEK_SET); // 기준파일 되돌리기
 										readLine = fgets(line, BUF_SIZE, fp); // 기준파일 한 줄 읽기
@@ -312,7 +313,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 									if(readCmpLine == NULL){
 										break;										
 									}
-									// 기준과 비교본 내용이 일치할경우
+									// 기준과 비교 파일 내용이 일치할경우
 									if(cmp_str(readLine, readCmpLine, sameAlpha) == 0){
 										lcsNow++; // 내용같은라인 + 1				
 									}
@@ -357,7 +358,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
                     printf("%s", readLine);
                 }
 
-				bool isLastNull = false; // 마지막줄 공백인경우 No newline 출력 x
+				bool isLastNull = false; // 마지막줄 개행 없을경우 No newline 출력 x
 				if(readLine[strlen(readLine) - 1] == '\n') isLastNull = true;
 
                 readLine = fgets(line, BUF_SIZE, fp); // 처리했으므로 한 줄 추가
@@ -373,7 +374,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
                 }
 
 				isLastNull = false;
-				if(readCmpLine[strlen(readCmpLine) - 1] == '\n') isLastNull = true; // 공백 없으면 마지막으로 판정
+				if(readCmpLine[strlen(readCmpLine) - 1] == '\n') isLastNull = true; // 개행 문자 있는지 체크
 
                 readCmpLine = fgets(cmpLine, BUF_SIZE, cmpFp); // 처리했으므로 한 줄 추가
 
@@ -386,6 +387,7 @@ void cmp_file(char *oriPath, char *cmpPath, bool sameAlpha){
 }
 
 // 파일, 디렉토리 옵션 (fromDir : 0 -> ssu_index에서, 1 -> 디렉토리 함수에서)
+// 입력 인자(기준 파일 경로, 비교 파일 경로, 옵션 배열, 디렉토리에서 호출됐는지 체크, diff 메시지 출력할 기준/비교 파일 문자열 배열)
 void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], bool fromDir, char *inputOper[FINDOPER_SIZE]){
 	bool isSame = true; // 파일내용이 같은지 확인하는 변수
 
@@ -450,12 +452,12 @@ void cmp_fileOption(char *oriPath, char *cmpPath, bool options[OPTION_SIZE], boo
 		}
 		printf("Files %s and %s are identical\n", inputOper[1], inputOper[2]);
 	}
-
 	fclose(fp);
 	fclose(cmpFp);
 }
 
 // 추가기능 : l옵션 -> 두 파일의 라인 수(set nu)를 출력하고, 비교 메시지 출력
+// 입력인자 : 기준 파일 경로, 비교 파일 경로, diff 메시지에 출력할 기준/비교 경로
 void cmp_length(char *oriPath, char *cmpPath, char *inputOper[FINDOPER_SIZE]){
 	FILE *fp = fopen(oriPath, "r"); // 기준 파일
 	FILE *cmpFp = fopen(cmpPath, "r"); // 비교할 파일
@@ -503,7 +505,7 @@ int scanFilter(const struct dirent *info){
 	else return 1;
 }
 
-// 디렉토리 비교
+// 디렉토리 비교 (입력인자 : 출력할 기준/비교 파일 경로, 조회할 기준 파일 경로, 조회할 비교 파일 경로, 옵션 배열)
 void cmp_dir(char *inputOper[FINDOPER_SIZE], char *oriPath, char *cmpPath, bool options[OPTION_SIZE]){
     struct dirent **oriList, **cmpList;
     int oriCnt, cmpCnt; // 기준 리스트 개수, 비교본 리스트 개수
@@ -628,7 +630,7 @@ void cmp_dir(char *inputOper[FINDOPER_SIZE], char *oriPath, char *cmpPath, bool 
 	for(int i = 0; i < cmpCnt; i++){
 		free(cmpList[i]);
 	}
-	free(cmpList);	
+	free(cmpList);
 
 	free(cmpCheck);
 }
@@ -648,6 +650,7 @@ bool isCmpFirst(char *oriName, char *cmpName){
 	return false;
 }
 
+// 파일, 디렉토리 판별 함수(파일 : 1, 디렉토리 : 2 리턴)
 int get_fileOrDir(char *path){
 	struct stat st;
 	int fileOrDir = 0;
@@ -669,6 +672,7 @@ int get_fileOrDir(char *path){
 	return fileOrDir;
 }
 
+// 파일 : regular file, 디렉토리 : directory 리턴
 char *getfileStr(int fileOrDir){
 	if(fileOrDir == 1) return "regular file";
 	return "directory";

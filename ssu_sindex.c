@@ -12,7 +12,6 @@
 
 struct fileLists fileList[LMAX]; // 출력 리스트 구조체 선언
 int listIdx = 0; // 출력 리스트 index
-
 long long sumDirSize; // 하위 파일들 합친 디렉토리 크기
 
 void ssu_sindex(){
@@ -115,6 +114,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	fileOrDir = check_fileOrDir(findOper[1]); // 파일형식 저장
 
 	long long oriSize = 0;
+	// 파일인 경우 파일사이즈, 디렉토리인 경우 디렉토리 사이즈 구하기
 	if(fileOrDir == 1){
 		oriSize = get_fileSize(findOper[1]);
 	}
@@ -130,7 +130,7 @@ void find_first(char *findOper[FINDOPER_SIZE]){
 	printf("Index Size Mode       Blocks Links UID  GID  Access          Change          Modify          Path\n");
 	save_fileInfo(findOper[1], oriSize); // 기준 파일(디렉토리) 리스트에 저장
 	print_fileInfo(); // 리스트 출력
-	listIdx++;
+	listIdx++; // 리스트 크기 1 증가
 
 	char *fileName = strrchr(findOper[1], '/'); // / 들어간 마지막 위치 반환
 	
@@ -271,6 +271,7 @@ void get_dirSize(char *path){
     }
 }
 
+// 파일, 디렉토리 판별(파일 : 1, 디렉토리 : 2 리턴)
 int check_fileOrDir(char*path){
 	struct stat st;
 	int fileOrDir = 0;
@@ -358,6 +359,7 @@ void save_fileInfo(char *path, long long oriSize){
 	strcpy(fileList[listIdx].path, path);
 }
 
+// 리스트 출력
 void print_fileInfo(){
 	printf("%-6d", fileList[listIdx].idx);
 	printf("%-5lld", fileList[listIdx].size); // 파일 크기
