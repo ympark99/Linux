@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "atomic": "c",
+        "bitset": "c",
+        "ssu_sindex.h": "c"
     }
 }
