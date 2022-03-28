@@ -1,15 +1,15 @@
-ssu_sindex : main.o ssu_sindex.o option.o
-	gcc main.o ssu_sindex.o option.o -o ssu_sindex
+ssu_sdup : main.o ssu_sdup.o ssu_help.o
+	gcc main.o ssu_sdup.o ssu_help.o -o ssu_sdup
 
-main.o : main.c ssu_sindex.h
+main.o : main.c ssu_sdup.h
 	gcc -c main.c
 
-ssu_sindex.o : ssu_sindex.c ssu_sindex.h option.h
-	gcc -c ssu_sindex.c
+ssu_sdup.o : ssu_sdup.c ssu_sdup.h ssu_help.h
+	gcc -c ssu_sdup.c
 
-option.o : option.c option.h
-	gcc -c option.c
+ssu_help.o : ssu_help.c ssu_help.h
+	gcc -c ssu_help.c
 
 clean :
 	rm *.o
-	rm ssu_sindex
+	rm ssu_sdup

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "option.h": "c",
-        "stat.h": "c"
+        "stat.h": "c",
+        "__config": "c"
     }
 }
