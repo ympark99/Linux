@@ -2,6 +2,7 @@
     "files.associations": {
         "option.h": "c",
         "stat.h": "c",
-        "__config": "c"
+        "__config": "c",
+        "stdio.h": "c"
     }
 }

@@ -1,13 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <dirent.h> // scandir 사용
+#include <ctype.h>
+#include <stdbool.h>
 #include "ssu_sdup.h"
 #include "ssu_help.h"
+#include "ssu_find-md5.h"
 
 void ssu_sdup(){
 	while (1){
 		char *oper = malloc(sizeof(char) * BUF_SIZE);
-		printf("20182615> "); // 프롬프트 출력
+		fprintf(stdout, "20182615> "); // 프롬프트 출력
 		fgets(oper, BUF_SIZE, stdin); // 명령어 입력
 		oper[strlen(oper)-1] = '\0'; // 공백 제거
 
@@ -29,11 +34,60 @@ void ssu_sdup(){
 		// fmd5 명령 시
 		if(splitOper[0] != NULL && strcmp(splitOper[0], "fmd5") == 0){
 			// 명령어 인자 틀리면 에러 처리
-			if(idx != OPER_LEN){
-				printf("error\n");
+			if(idx != OPER_LEN)
+				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
+			// 확장자 에러 검사 (*또는 *.(확장자)만 ok)
+			else if(strcmp(splitOper[1], "*") != 0 && (strlen(splitOper[1]) > 1 && splitOper[1][1] != '.'))
+				fprintf(stderr, "올바른 확장자 입력이 아님\n");
+			// 크기 인덱스 에러 검사(todo)
+			else{
+				bool goNext = false;
+				int minlen = strlen(splitOper[2]);
+				bool onlyDig = true;
+				// 숫자로만 이루어져 있는지 판단
+				for(int i = 0; i < minlen; i++){
+					if(!isdigit(splitOper[2][i]))
+						onlyDig = false;
+				}
+				// ~거나 숫자라면
+				if(strcmp(splitOper[2], "~") == 0 || onlyDig)	
+					goNext = true;
+				//todo : 아닐경우 한숫자씩 돌아가면서 체크
+
+
+				else if(minlen > 2){
+					// KB, MB, GB인경우(todo : strcasecmp로 바꿔야함)
+					if(splitOper[2][minlen - 1] == 'B'){
+						if((splitOper[2][minlen - 2] == 'M' || splitOper[2][minlen - 2] == 'm')
+						|| (splitOper[2][minlen - 2] == 'K' || splitOper[2][minlen - 2] == 'k')
+						|| (splitOper[2][minlen - 2] == 'G' || splitOper[2][minlen - 2] == 'g'))
+							goNext = true;
+					}
+				}
+
+				if(goNext) ssu_find_md5(splitOper);
+				else{
+					fprintf(stderr, "최소 크기 입력 error\n");
+				}
 			}
-			else{ // ssu_find-md5.c 실행
-				// find_first(splitOper);
+			// else if((strcmp(splitOper[2], "~") != 0 &&
+			// 		((minlen > 2) &&
+			// 		((splitOper[2][minlen - 2] != 'M' && splitOper[2][minlen - 2] != 'K')
+			// 		&& splitOper[2][minlen - 2] != 'G'))
+					
+			// 		)){
+
+			// }
+			// else ssu_find_md5(splitOper);
+		}
+		// fsha1 명령 시
+		else if(splitOper[0] != NULL && strcmp(splitOper[0], "fsha1") == 0){
+			// 명령어 인자 틀리면 에러 처리
+			if(idx != OPER_LEN){
+				fprintf(stdout, "error\n");
+			}
+			else{ // ssu_find-sha1.c 실행
+				// ssu_find_md5(splitOper);
 			}
 		}		
 		// exit 입력 시 종료
