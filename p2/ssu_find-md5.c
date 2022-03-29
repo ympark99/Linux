@@ -6,8 +6,17 @@
 #include <stdlib.h>
 #include <dirent.h> // scandir 사용
 #include <math.h> // modf 사용
-
+// #include <openssl/md5.h>
 #include "ssu_find-md5.h"
+
+// 동일 파일 링크드리스트
+typedef struct Node{
+	struct Node *next; // 다음 주소
+	char path[BUF_SIZE]; // 파일 경로
+	char mtime[BUF_SIZE]; // mtime
+	char atime[BUF_SIZE]; // atime
+	char hash[BUF_SIZE]; // hash value
+} Node;
 
 // md5 관련 함수 실행
 // 입력인자 : 명령어 split
