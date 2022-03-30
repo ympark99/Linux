@@ -1,5 +1,5 @@
 ssu_sdup : main.o ssu_sdup.o ssu_help.o ssu_find-md5.o
-	gcc main.o ssu_sdup.o ssu_help.o ssu_find-md5.o -o ssu_sdup
+	gcc -Wall main.o ssu_sdup.o ssu_help.o ssu_find-md5.o -o ssu_sdup -lcrypto -lssl
 
 main.o : main.c ssu_sdup.h
 	gcc -c main.c

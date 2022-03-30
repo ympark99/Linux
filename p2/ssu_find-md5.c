@@ -6,17 +6,60 @@
 #include <stdlib.h>
 #include <dirent.h> // scandir 사용
 #include <math.h> // modf 사용
-// #include <openssl/md5.h>
+#include <openssl/md5.h>
 #include "ssu_find-md5.h"
 
-// 동일 파일 링크드리스트
-typedef struct Node{
-	struct Node *next; // 다음 주소
-	char path[BUF_SIZE]; // 파일 경로
-	char mtime[BUF_SIZE]; // mtime
-	char atime[BUF_SIZE]; // atime
-	char hash[BUF_SIZE]; // hash value
-} Node;
+// 리스트 끝에 추가
+void append(Node *list, char *path, char *mtime, char *atime, char *hash){
+	// 리스트 빌 경우
+	if(list -> next == NULL){
+		Node *newNode = malloc(sizeof(Node));
+		strcpy(newNode->path, path);
+		strcpy(newNode->mtime, mtime);
+		strcpy(newNode->atime, atime);
+		strcpy(newNode->hash, hash);
+
+		list->next = newNode;
+	}
+	else{
+		Node *cur = list;
+		while (cur->next != NULL)
+			cur = cur->next;
+		
+		Node *newNode = malloc(sizeof(Node));
+		strcpy(newNode->path, path);
+		strcpy(newNode->mtime, mtime);
+		strcpy(newNode->atime, atime);
+		strcpy(newNode->hash, hash);
+		
+		newNode->next = NULL;
+		cur->next = newNode;
+	}
+}
+
+// 리스트 전체 데이터 출력
+void print_list(Node *list){
+	Node *cur = list->next;
+	printf("[ ");
+	while (cur != NULL){
+		printf("%s ", cur->path);
+		printf("%s ", cur->mtime);
+		printf("%s ", cur->atime);
+		printf("%s ", cur->hash);
+	}
+	printf("]\n");
+}
+
+// 메모리 해제
+void delete_list(Node *list){
+	Node *cur = list;
+	Node *next;
+	while (cur != NULL){
+		next = cur->next;
+		free(cur);
+		cur = next;
+	}	
+}
 
 // md5 관련 함수 실행
 // 입력인자 : 명령어 split
@@ -120,6 +163,15 @@ void ssu_find_md5(char *splitOper[OPER_LEN]){
 				if(filesize > max_byte) continue;
 			}
 			// todo : 리스트에 있는지 확인(md5)
+			// md5값 구하기
+			FILE *fp = fopen(filelist[i]->d_name, "r");
+			if (fp == NULL) // fopen 에러시 패스
+				continue;
+			get_md5(fp);
+
+			fclose(fp);		
+
+			// todo : 리스트 비어있을 경우 push
 
         }
         // 디렉토리일 경우
@@ -186,4 +238,20 @@ int check_fileOrDir(char *path){
 			break;
 	}
 	return fileOrDir;
+}
+
+void get_md5(FILE *fp){
+	MD5_CTX c;
+	unsigned char md[MD5_DIGEST_LENGTH];
+	static unsigned char buf[BUF_SIZE];
+	int fd = fileno(fp);
+
+	MD5_Init(&c);
+	int i = read(fd, buf, BUF_SIZE);
+	MD5_Update(&c,buf,(unsigned long)i);
+	
+	MD5_Final(&(md[0]),&c);
+	for (int i = 0; i< MD5_DIGEST_LENGTH; i++)
+		printf("%02x",md[i]);
+	return;
 }

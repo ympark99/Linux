@@ -4,6 +4,7 @@
         "stat.h": "c",
         "__config": "c",
         "stdio.h": "c",
-        "ssu_find-md5.h": "c"
+        "ssu_find-md5.h": "c",
+        "md5.h": "c"
     }
 }
