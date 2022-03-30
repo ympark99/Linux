@@ -1,65 +1,19 @@
 #include <stdio.h>
 #include <sys/types.h> // stat 사용
 #include <sys/stat.h> // stat 사용
+#include <sys/time.h>
 #include <unistd.h> // stat 사용
 #include <string.h> // string 관련 함수 사용
 #include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
 #include <dirent.h> // scandir 사용
 #include <math.h> // modf 사용
 #include <openssl/md5.h>
+
 #include "ssu_find-md5.h"
 
-// 리스트 끝에 추가
-void append(Node *list, char *path, char *mtime, char *atime, char *hash){
-	// 리스트 빌 경우
-	if(list -> next == NULL){
-		Node *newNode = malloc(sizeof(Node));
-		strcpy(newNode->path, path);
-		strcpy(newNode->mtime, mtime);
-		strcpy(newNode->atime, atime);
-		strcpy(newNode->hash, hash);
-
-		list->next = newNode;
-	}
-	else{
-		Node *cur = list;
-		while (cur->next != NULL)
-			cur = cur->next;
-		
-		Node *newNode = malloc(sizeof(Node));
-		strcpy(newNode->path, path);
-		strcpy(newNode->mtime, mtime);
-		strcpy(newNode->atime, atime);
-		strcpy(newNode->hash, hash);
-		
-		newNode->next = NULL;
-		cur->next = newNode;
-	}
-}
-
-// 리스트 전체 데이터 출력
-void print_list(Node *list){
-	Node *cur = list->next;
-	printf("[ ");
-	while (cur != NULL){
-		printf("%s ", cur->path);
-		printf("%s ", cur->mtime);
-		printf("%s ", cur->atime);
-		printf("%s ", cur->hash);
-	}
-	printf("]\n");
-}
-
-// 메모리 해제
-void delete_list(Node *list){
-	Node *cur = list;
-	Node *next;
-	while (cur != NULL){
-		next = cur->next;
-		free(cur);
-		cur = next;
-	}	
-}
+int node_size = 0; // 노드의 데이터 개수
 
 // md5 관련 함수 실행
 // 입력인자 : 명령어 split
@@ -91,7 +45,15 @@ void ssu_find_md5(char *splitOper[OPER_LEN]){
 			}
 
 			sprintf(pathname, "%s/%s", splitOper[4], filelist[i]->d_name); // pathname 만들어줌
-			long double filesize = get_fileSize(pathname); // 파일크기 구하기
+
+			// 파일 정보 조회
+			struct stat st;
+			// 파일 정보 얻기
+			if(lstat(pathname, &st) == -1){
+				fprintf(stderr, "stat error\n");
+				continue;
+			}
+			long double filesize = (long double) st.st_size; // 파일크기 구하기
 
 			// 최소 크기 이상인지 확인
 			if(strcmp(splitOper[2], "~")){
@@ -163,13 +125,36 @@ void ssu_find_md5(char *splitOper[OPER_LEN]){
 				if(filesize > max_byte) continue;
 			}
 			// todo : 리스트에 있는지 확인(md5)
+			// 절대경로 변환
+			char real_path[BUF_SIZE];
+			if(realpath(pathname, real_path) == NULL){
+				fprintf(stderr, "realpath error\n");
+				continue;
+			}		
+
 			// md5값 구하기
 			FILE *fp = fopen(filelist[i]->d_name, "r");
 			if (fp == NULL) // fopen 에러시 패스
 				continue;
-			get_md5(fp);
 
-			fclose(fp);		
+			unsigned char filehash[MD5_DIGEST_LENGTH]; // 해쉬값 저장할 문자열
+			strcpy(filehash, get_md5(fp)); // 해쉬값 구해서 저장(todo : 이 다음 pathname이 초기화됨, real_path로 복사해둠)
+
+			// 리스트관련 처리
+
+			Node *head = malloc(sizeof(Node));
+			printf("len : %d\n", getNodeLength(head));
+			Node *list1 = malloc(sizeof(Node));
+			head->next = list1;
+
+			// 리스트가 비어있다면 처음 추가
+			if(node_size == 0)
+				append_first(list1, real_path, get_time(st.st_mtime), get_time(st.st_atime), filehash);
+			
+			// print_list(list1);
+			delete_list(head);
+
+			fclose(fp);
 
 			// todo : 리스트 비어있을 경우 push
 
@@ -191,19 +176,6 @@ void ssu_find_md5(char *splitOper[OPER_LEN]){
 
 }
 
-// 파일 크기 리턴
-long double get_fileSize(char *path){
-	struct stat st;
-
-	// 파일 정보 얻기
-	if(stat(path, &st) == -1){
-		perror("stat error");
-		return -1;
-	}
-
-	return (long double) st.st_size;
-}
-
 // scandir 필터(. 과 .. 제거)
 int scandirFilter(const struct dirent *info){
 	if(strcmp(info->d_name, ".") == 0 || strcmp(info->d_name, "..") == 0){
@@ -217,7 +189,7 @@ int check_fileOrDir(char *path){
 	struct stat st;
 	int fileOrDir = 0;
 	// 파일 정보 얻기
-	if(stat(path, &st) == -1){
+	if(lstat(path, &st) == -1){
 		perror("stat error");
 		return -1;
 	}
@@ -240,18 +212,123 @@ int check_fileOrDir(char *path){
 	return fileOrDir;
 }
 
-void get_md5(FILE *fp){
+// md5 값 조회
+char *get_md5(FILE *fp){
 	MD5_CTX c;
-	unsigned char md[MD5_DIGEST_LENGTH];
-	static unsigned char buf[BUF_SIZE];
+	static unsigned char md[MD5_DIGEST_LENGTH];
+	static unsigned char buf[BUF_MAX];
 	int fd = fileno(fp);
 
 	MD5_Init(&c);
-	int i = read(fd, buf, BUF_SIZE);
-	MD5_Update(&c,buf,(unsigned long)i);
+	int i = read(fd, buf, BUF_MAX);
+	MD5_Update(&c, buf, (unsigned long)i);
 	
 	MD5_Final(&(md[0]),&c);
-	for (int i = 0; i< MD5_DIGEST_LENGTH; i++)
-		printf("%02x",md[i]);
-	return;
+
+	return md;
+}
+
+// 시간 정보 포맷에 맞게 변환
+char* get_time(time_t stime){
+	char* time = (char*)malloc(sizeof(char) * BUF_SIZE);
+	struct tm *tm;
+
+	tm = localtime(&stime);
+	sprintf(time, "%02d-%02d-%02d %02d:%02d", tm->tm_year-100, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min);
+
+	return time;
+}
+
+// 처음 노드 추가
+void append_first(Node *list, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]){
+    struct Nodes *newNode = malloc(sizeof(Node));
+	strcpy(newNode->path, path);
+	strcpy(newNode->mtime, mtime);
+	strcpy(newNode->atime, atime);
+	strcpy(newNode->hash, hash);
+
+    list->next = newNode;
+}
+
+// 리스트 끝에 추가
+void append(Node *list, char *path, char *mtime, char *atime, char *hash){
+	// 리스트 빌 경우
+	if(list -> next == NULL){
+		Node *newNode = malloc(sizeof(Node));
+		strcpy(newNode->path, path);
+		strcpy(newNode->mtime, mtime);
+		strcpy(newNode->atime, atime);
+		strcpy(newNode->hash, hash);
+
+		list->next = newNode;
+	}
+	else{
+		Node *cur = list;
+		while (cur->next != NULL)
+			cur = cur->next;
+		
+		Node *newNode = malloc(sizeof(Node));
+		strcpy(newNode->path, path);
+		strcpy(newNode->mtime, mtime);
+		strcpy(newNode->atime, atime);
+		strcpy(newNode->hash, hash);
+		
+		newNode->next = NULL;
+		cur->next = newNode;
+	}
+}
+
+int getNodeLength(Node *list){
+    int cnt = -1; // head 제외
+    Node *cur = list;
+    
+    while(cur != NULL){
+        cnt++;
+        cur = cur->next;
+    }
+
+    return cnt;
+}
+
+// 리스트 전체 데이터 출력
+void print_list(Node *list){
+	Node *cur = list->next;
+	printf("[ ");
+	while (cur != NULL){
+		printf("%s ", cur->path);
+		printf("%s ", cur->mtime);
+		printf("%s ", cur->atime);
+		for (int i = 0; i < MD5_DIGEST_LENGTH; i++)
+			printf("%02x", cur->hash[i]);
+	}
+	printf("]\n");
+}
+
+// 메모리 해제
+void delete_list(Node *list){
+	Node *cur = list;
+	Node *next;
+	while (cur != NULL){
+		next = cur->next;
+		free(cur);
+		cur = next;
+	}	
+}
+
+// 해쉬 일치하는지 탐색
+int search_hash(Node *list, unsigned char hash[MD5_DIGEST_LENGTH]){
+    Node *cur = list;
+    int cnt = 0;
+
+    while(cur != NULL){
+		// 같은 해쉬 찾은 경우
+        if(!strcmp(list->hash, hash)){
+            printf("-> found at index : %d", cnt);
+            return cnt;
+        }
+        cur = cur->next;
+        cnt++;
+    }
+	// 못 찾은 경우
+    return -1;
 }
