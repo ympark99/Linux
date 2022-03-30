@@ -40,8 +40,13 @@ void ssu_sdup(){
 			else if(strcmp(splitOper[1], "*") != 0 && (strlen(splitOper[1]) > 1 && splitOper[1][1] != '.'))
 				fprintf(stderr, "올바른 확장자 입력이 아님\n");
 			// 최소, 최대 검사는 함수 내에서 진행
-			else
-				ssu_find_md5(splitOper);
+			else{
+				// 링크드리스트 head 선언
+				Node *head = malloc(sizeof(Node));
+				head->next = NULL;
+				ssu_find_md5(splitOper, head);
+				delete_list(head); // 링크드리스트 제거
+			}
 		}
 		// fsha1 명령 시
 		else if(splitOper[0] != NULL && !strcmp(splitOper[0], "fsha1")){
