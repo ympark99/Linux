@@ -72,3 +72,14 @@ void ssu_sdup(){
 		free(oper);
 	}
 }
+
+// 메모리 해제
+void delete_list(Node *list){
+	Node *cur = list;
+	Node *next;
+	while (cur != NULL){
+		next = cur->next;
+		free(cur);
+		cur = next;
+	}	
+}

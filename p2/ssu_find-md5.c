@@ -27,7 +27,14 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
         fprintf(stderr, "target is not directory\n");
 		return;
 	}
-	
+
+	// 절대경로 변환
+	char dir_path[BUF_SIZE];
+	if(realpath(splitOper[4], dir_path) == NULL){
+		fprintf(stderr, "realpath error\n");
+		return;
+	}
+
 	char pathname[BUF_SIZE]; // 합성할 path이름
 
     // 조건에 맞으면, 파일 : 리스트 조회 | 디렉토리 : 큐에 삽입
@@ -124,13 +131,13 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 				// 최대 크기보다 큰 경우 패스
 				if(filesize > max_byte) continue;
 			}
-			// todo : 리스트에 있는지 확인(md5)
+
 			// 절대경로 변환
 			char real_path[BUF_SIZE];
 			if(realpath(pathname, real_path) == NULL){
 				fprintf(stderr, "realpath error\n");
 				continue;
-			}		
+			}
 
 			// md5값 구하기
 			FILE *fp = fopen(filelist[i]->d_name, "r");
@@ -141,20 +148,15 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 			strcpy(filehash, get_md5(fp)); // 해쉬값 구해서 저장(todo : 이 다음 pathname이 초기화됨, real_path로 복사해둠)
 			fclose(fp);
 
-			// 리스트관련 처리
-			// 리스트가 비어있다면 처음 추가
+			// 리스트에 추가
 			append(list, (long long)filesize, real_path, get_time(st.st_mtime), get_time(st.st_atime), filehash);
-			// todo : 리스트 비어있을 경우 push
-
         }
         // 디렉토리일 경우
         else if(check_fileOrDir(filelist[i]->d_name) == 2){
             // todo : 루트에서부터 탐색시, proc, run, sys 제외
 
-			// todo : 큐 추가
+			// todo : 찾은 디렉토리들 큐 추가
         }
-
-
     }
 
 	for(int i = 0; i < cnt; i++){
@@ -164,7 +166,15 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 
 	// todo : 큐 빌때까지 bfs탐색
 
-	// todo : 리스트 정렬
+	// bfs이므로 절대경로, 아스키 순서로 정렬되어있음
+	if(get_listLen(list) == 0){
+		printf("No duplicates in %s\n", dir_path);
+		return;
+	}
+
+	filter_node(list); // 리스트 필터링
+	// todo : 중복파일 없는경우 출력
+
 	print_list(list); // 리스트 출력
 }
 
@@ -265,7 +275,7 @@ void append(Node *list, long long filesize, char *path, char *mtime, char *atime
 }
 
 // 노드 크기 구하기
-int getNodeLength(Node *list){
+int get_listLen(Node *list){
     int cnt = -1; // head 제외
     Node *cur = list;
     
@@ -305,31 +315,51 @@ void print_list(Node *list){
 	}
 }
 
-// 메모리 해제
-void delete_list(Node *list){
-	Node *cur = list;
-	Node *next;
-	while (cur != NULL){
-		next = cur->next;
-		free(cur);
-		cur = next;
-	}	
-}
-
-// 해쉬 일치하는지 탐색
-int search_hash(Node *list, unsigned char hash[MD5_DIGEST_LENGTH]){
-    Node *cur = list;
-    int cnt = 0;
+// 해쉬 일치할경우 인덱스 반환
+int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]){
+    Node *cur = list->next; // head 다음
+    int idx = 1;	
 
     while(cur != NULL){
-		// 같은 해쉬 찾은 경우
-        if(!strcmp(list->hash, hash)){
-            printf("-> found at index : %d", cnt);
-            return cnt;
-        }
+		// 본인이 아닌 같은 해쉬 찾은 경우
+        if((idx != cmp_idx) && !strcmp(cur->hash, hash))
+			return idx;
+        
         cur = cur->next;
-        cnt++;
+        idx++;
     }
 	// 못 찾은 경우
     return -1;
+}
+
+// 같은파일 있는지 찾고 없으면 삭제, 있으면 가장 앞에있는거의 뒤에 붙임
+void filter_node(Node *list){
+    Node *cur = list->next; // head 다음
+	Node *pre = NULL;
+	int idx = 1; // 현재 cur 인덱스
+
+    while(cur != NULL){
+		printf("%s\n", cur->path);
+		// 같은 해시 값 없으면
+        if(search_hash(list, idx, cur->hash) == -1){
+			// 해당 인덱스 삭제
+			if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
+				pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
+				free(cur);
+				cur = pre->next;
+			}
+			else{ // 마지막 인덱스 삭제할 경우
+				pre->next = NULL;
+				cur->next = NULL;
+				free(cur);
+				cur = NULL;
+			}
+		}
+		else{
+			// todo : 가장 상위에 있는 인덱스 찾은 후 이동
+			pre = cur;
+			idx++;
+			cur = cur->next;
+		}	
+    }
 }

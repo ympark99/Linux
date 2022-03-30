@@ -35,10 +35,11 @@ int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
 char* get_time(time_t stime);
 
-int getNodeLength(Node *list);
+int get_listLen(Node *list);
 void append(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);
 void print_list(Node *list);
 void delete_list(Node *list);
-int search_hash(Node *list, unsigned char hash[MD5_DIGEST_LENGTH]);
+int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
+void filter_node(Node *list);
 
 #endif
