@@ -15,7 +15,7 @@
 // md5 관련 함수 실행
 // 입력인자 : 명령어 split, 현재 링크드리스트
 // 인자배열 : fmd5, 파일 확장자, 최소크기, 최대크기, 디렉토리
-void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
+void ssu_find_md5(char *splitOper[OPER_LEN], Node *list, queue *q){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
 
@@ -59,8 +59,6 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 				if((cmp_fname == NULL) || strcmp(ori_fname, cmp_fname) != 0)
 					continue;
 			}
-
-			// sprintf(pathname, "%s/%s", splitOper[4], filelist[i]->d_name); // pathname 만들어줌
 
 			// 파일 정보 조회
 			struct stat st;
@@ -164,9 +162,13 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
         }
         // 디렉토리일 경우
         else if(fileOrDir == 2){
-            // todo : 루트에서부터 탐색시, proc, run, sys 제외
-
-			// todo : 찾은 디렉토리들 큐 추가
+            // 루트에서부터 탐색시, proc, run, sys 제외
+			if(!strcmp(dir_path, "/")){
+				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
+					continue;
+			}
+			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
+			printf("q pop : %s\n", pop_queue(q));
         }
     }
 
@@ -418,4 +420,40 @@ void swap_node(Node *node1, Node *node2){
 	strcpy(node2->mtime, mtime);
 	strcpy(node2->atime, atime);
 	strcpy(node2->hash, hash);
+}
+
+bool isEmpty(queue *q){
+	return q->cnt == 0;
+}
+
+// 큐에 데이터 삽입
+void push_queue(queue *q, char path[BUF_SIZE]){
+    Qnode *newNode = malloc(sizeof(Qnode)); // newNode 생성
+	strcpy(newNode->path, path);
+    newNode->next = NULL;
+
+    if (isEmpty(q)) // 큐가 비어있을 때
+        q->front = newNode;
+    else
+        q->rear->next = newNode; //맨 뒤의 다음을 newNode로 설정
+    
+    q->rear = newNode; //맨 뒤를 newNode로 설정   
+    q->cnt++; //큐 노드 개수 1 증가
+}
+
+// 큐 pop
+char *pop_queue(queue *q){
+    static char data[BUF_SIZE];
+    Qnode *ptr;
+    if (isEmpty(q)){
+        fprintf(stderr, "Error : Queue is empty!\n");
+        return data;
+    }
+    ptr = q->front;
+	strcpy(data, ptr->path);
+    q->front = ptr->next;  // ptr의 다음 노드를 front로 설정
+    free(ptr);
+    q->cnt--;
+
+    return data;
 }

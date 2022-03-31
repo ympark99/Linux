@@ -41,10 +41,13 @@ void ssu_sdup(){
 				fprintf(stderr, "올바른 확장자 입력이 아님\n");
 			// 최소, 최대 검사는 함수 내에서 진행
 			else{
+				// 큐 선언
+				queue q;
+				init_queue(&q);
 				// 링크드리스트 head 선언
 				Node *head = malloc(sizeof(Node));
 				head->next = NULL;
-				ssu_find_md5(splitOper, head);
+				ssu_find_md5(splitOper, head, &q);
 				delete_list(head); // 링크드리스트 제거
 			}
 		}
@@ -82,4 +85,10 @@ void delete_list(Node *list){
 		free(cur);
 		cur = next;
 	}	
+}
+
+// 큐 초기화
+void init_queue(queue *q){
+    q->front = q->rear = NULL; 
+    q->cnt = 0;
 }

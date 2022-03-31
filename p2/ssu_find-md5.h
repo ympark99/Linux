@@ -23,9 +23,21 @@ typedef struct Nodes{
 	char mtime[BUF_SIZE]; // mtime
 	char atime[BUF_SIZE]; // atime
 	unsigned char hash[BUF_SIZE]; // hash value
-} Node;
+}Node;
 
-void ssu_find_md5(char *splitOper[OPER_LEN], Node *list);
+typedef struct QNode{
+	char path[BUF_SIZE];
+	struct QNode *next;
+}Qnode;
+
+// BFS 구현 용 큐
+typedef struct Queue{
+	Qnode *front;
+	Qnode *rear;
+	int cnt; // 큐 안의 노드 개수
+}queue;
+
+void ssu_find_md5(char *splitOper[OPER_LEN], Node *list, queue *q);
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
@@ -39,5 +51,10 @@ int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
 void del_onlyList(Node *list);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
+
+void init_queue(queue *q);
+bool isEmpty(queue *q);
+void push_queue(queue *q, char path[BUF_SIZE]);
+char *pop_queue(queue *q);
 
 #endif
