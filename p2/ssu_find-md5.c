@@ -36,11 +36,17 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 	}
 
 	char pathname[BUF_SIZE]; // 합성할 path이름
+	strcpy(pathname, dir_path);
 
     // 조건에 맞으면, 파일 : 리스트 조회 | 디렉토리 : 큐에 삽입
 	for(int i = 0; i < cnt; i++){
+
+		strcat(pathname, "/");
+		strcat(pathname, filelist[i]->d_name);
+
+		// sprintf(pathname, "%s/%s", dir_path, filelist[i]->d_name); // pathname 만들어줌
         // 파일일경우
-        if(check_fileOrDir(filelist[i]->d_name) == 1){
+        if(check_fileOrDir(pathname) == 1){
             // *.(확장자)인 경우
 			if(strlen(splitOper[1]) > 1 ){
 				char* ori_fname = strrchr(splitOper[1], '.'); // 지정 파일 확장자
@@ -51,7 +57,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 					continue;
 			}
 
-			sprintf(pathname, "%s/%s", splitOper[4], filelist[i]->d_name); // pathname 만들어줌
+			// sprintf(pathname, "%s/%s", splitOper[4], filelist[i]->d_name); // pathname 만들어줌
 
 			// 파일 정보 조회
 			struct stat st;
@@ -140,29 +146,36 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 			}
 
 			// md5값 구하기
-			FILE *fp = fopen(filelist[i]->d_name, "r");
-			if (fp == NULL) // fopen 에러시 패스
+			FILE *fp = fopen(real_path, "r");
+			if (fp == NULL){ // fopen 에러시 패스
+				fprintf(stderr, "fopen error\n");
 				continue;
-
+			}
 			unsigned char filehash[MD5_DIGEST_LENGTH]; // 해쉬값 저장할 문자열
 			strcpy(filehash, get_md5(fp)); // 해쉬값 구해서 저장(todo : 이 다음 pathname이 초기화됨, real_path로 복사해둠)
 			fclose(fp);
 
 			// 리스트에 추가
-			append(list, (long long)filesize, real_path, get_time(st.st_mtime), get_time(st.st_atime), filehash);
+			append(list, (long long)filesize, real_path, get_time(st.st_mtime), get_time(st.st_atime), filehash);		
         }
         // 디렉토리일 경우
-        else if(check_fileOrDir(filelist[i]->d_name) == 2){
+        else if(check_fileOrDir(pathname) == 2){
             // todo : 루트에서부터 탐색시, proc, run, sys 제외
 
 			// todo : 찾은 디렉토리들 큐 추가
         }
+
+		// 합쳤던 하위파일명 문자열 제거
+		char* ptr = strrchr(pathname, '/'); // 합쳤던 /하위파일명 포인터 연결
+		if(ptr){
+			strncpy(ptr, "", 1); // 합쳤던 문자열 제거
+		}
     }
 
 	for(int i = 0; i < cnt; i++){
 		free(filelist[i]);
 	}
-	free(filelist);    
+	free(filelist);
 
 	// todo : 큐 빌때까지 bfs탐색
 
@@ -190,9 +203,10 @@ int scandirFilter(const struct dirent *info){
 int check_fileOrDir(char *path){
 	struct stat st;
 	int fileOrDir = 0;
+
 	// 파일 정보 얻기
 	if(lstat(path, &st) == -1){
-		perror("stat error");
+		fprintf(stderr, "stat error -> checkfile\n");
 		return -1;
 	}
 
@@ -335,13 +349,14 @@ int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]){
 // 같은파일 있는지 찾고 없으면 삭제, 있으면 가장 앞에있는거의 뒤에 붙임
 void filter_node(Node *list){
     Node *cur = list->next; // head 다음
-	Node *pre = NULL;
+	Node *pre = list;
 	int idx = 1; // 현재 cur 인덱스
+	int cmp_idx; // 비교할 인덱스
 
     while(cur != NULL){
-		printf("%s\n", cur->path);
+		cmp_idx = search_hash(list, idx, cur->hash); // 본인 제외 같은 해쉬 존재하는지 탐색
 		// 같은 해시 값 없으면
-        if(search_hash(list, idx, cur->hash) == -1){
+        if(cmp_idx == -1){
 			// 해당 인덱스 삭제
 			if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
 				pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
@@ -355,11 +370,17 @@ void filter_node(Node *list){
 				cur = NULL;
 			}
 		}
-		else{
+		// 본인이 아닌 같은 해쉬 발견할 경우 -> 현재 인덱스가 더 뒤에 있다면
+		else if(cmp_idx < idx){
 			// todo : 가장 상위에 있는 인덱스 찾은 후 이동
 			pre = cur;
 			idx++;
+			cur = cur->next;			
+		}
+		else{ // 본인이 가장 앞이라면 -> 그대로 놔둠
+			pre = cur;
+			idx++;
 			cur = cur->next;
-		}	
+		}
     }
 }
