@@ -40,6 +40,8 @@ void append(Node *list, long long filesize, char *path, char *mtime, char *atime
 void print_list(Node *list);
 void delete_list(Node *list);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
-void filter_node(Node *list);
+void del_onlyList(Node *list);
+void sort_list(Node *list, int list_size);
+void swap_node(Node *node1, Node *node2);
 
 #endif
