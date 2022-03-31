@@ -9,10 +9,6 @@
     #define BUF_SIZE 1024
 #endif
 
-#ifndef DATEFORMAT_SIZE
-    #define DATEFORMAT_SIZE 36
-#endif
-
 #ifndef OPER_LEN
     #define OPER_LEN 5
 #endif
@@ -33,10 +29,10 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list);
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
-char* get_time(time_t stime);
+char* get_time(time_t stime, char * str);
 
 int get_listLen(Node *list);
-void append(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);
+void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);
 void print_list(Node *list);
 void delete_list(Node *list);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);

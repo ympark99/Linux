@@ -151,8 +151,16 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list){
 			strcpy(filehash, get_md5(fp)); // 해쉬값 구해서 저장
 			fclose(fp);
 
-			// 리스트에 추가
-			append(list, (long long)filesize, pathname, get_time(st.st_mtime), get_time(st.st_atime), filehash);		
+			// 동적할당 후 시간 포맷 구하기
+			char* mstr = (char*)malloc(sizeof(char) * BUF_SIZE);
+			char* astr = (char*)malloc(sizeof(char) * BUF_SIZE);
+			strcpy(mstr, get_time(st.st_mtime, mstr));
+			strcpy(astr, get_time(st.st_atime, mstr));
+
+			append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가	
+
+			free(mstr);
+			free(astr);
         }
         // 디렉토리일 경우
         else if(fileOrDir == 2){
@@ -238,8 +246,7 @@ char *get_md5(FILE *fp){
 }
 
 // 시간 정보 포맷에 맞게 변환
-char* get_time(time_t stime){
-	char* str = (char*)malloc(sizeof(char) * BUF_SIZE);
+char* get_time(time_t stime, char * str){
 	struct tm *tm;
 	tm = localtime(&stime);
 
@@ -248,7 +255,7 @@ char* get_time(time_t stime){
 }
 
 // 리스트 끝에 추가
-void append(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]){
+void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]){
 	// 리스트 빌 경우(처음인경우 포함)
 	if(list -> next == NULL){
 		Node *newNode = malloc(sizeof(Node));
