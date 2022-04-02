@@ -156,6 +156,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			strcpy(mstr, get_time(st.st_mtime, mstr));
 			strcpy(astr, get_time(st.st_atime, mstr));
 
+			//todo : 리스트가 아닌 파일에 저장
 			append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가	
 
 			free(mstr);
@@ -168,6 +169,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
 					continue;
 			}
+			//todo : 큐 동적배열아닌 파일로 할지 고민
 			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
         }
     }
@@ -187,6 +189,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	struct timeval end; 
 	gettimeofday(&end, NULL); // 종료 시간 측정
 
+	// todo : 파일에서 중복파일 거르기
 	del_onlyList(list); // 중복파일 없는 인덱스 삭제
 
 	int list_size = get_listLen(list);
@@ -202,13 +205,15 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	// 파일크기대로 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
 	sort_list(list, list_size);
 
-	print_list(list); // 리스트 출력
+	printOrLabel_list(list); // 리스트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
 	option(list); // 옵션 실행
 }
 
 void option(Node *list){
 	while(1){
+		if(!get_listLen(list)) break; // 리스트 없으면 탈출
+		
 		fprintf(stdout, ">> ");
 
 		char oper[BUF_SIZE];
@@ -243,13 +248,16 @@ void option(Node *list){
 			fprintf(stdout, ">> Back to Prompt\n");
 			break;
 		}
+		else if(splitOper[1] == NULL){
+			fprintf(stderr, "옵션 입력 x\n");
+		}
 		else if(goNext && !strcmp(splitOper[1], "d")){ // d옵션
 			if(splitOper[2] == NULL)
 				fprintf(stderr, "LIST_IDX 입력 x\n");
 			else option_d(splitOper, list);
 		}
 		else if(goNext && !strcmp(splitOper[1], "i")){ // i옵션
-
+			option_i(atoi(splitOper[0]), list);
 		}
 		else if(goNext && !strcmp(splitOper[1], "f")){ // f옵션
 
@@ -308,9 +316,66 @@ void option_d(char *splitOper[OPTION_LEN], Node *list){
 		fprintf(stdout, "\"%s\" has been deleted in #%d\n\n", cur->path, set_num);
 		del_node(list, set_num, idx_num); // 해당 노드 연결 리스트에서 삭제
 		del_onlyList(list); // 하나만 남은 경우 제거
-		print_list(list); // 프린트, 넘버링(인덱스 재배치)
-		fprintf(stdout, "\n");
+		printOrLabel_list(list); // 프린트, 넘버링(인덱스 재배치)
+		if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 	}
+}
+
+// i옵션
+void option_i(int set_idx, Node *list){
+	Node *cur = list->next;
+	Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
+
+	// 세트 같을때까지 탐색
+	while (cur->set_num != set_idx){
+		if(cur->next == NULL){
+			fprintf(stderr, "세트 범위 벗어남\n");
+			return;
+		}
+		pre = cur;
+		cur = cur->next;
+	}
+
+	// 세트 내에서 탐색
+	while (cur->set_num == set_idx){
+		char *oper = malloc(sizeof(char) * BUF_SIZE);
+		fprintf(stdout, "Delete \"%s\"? [y/n] ", cur->path);
+
+		fgets(oper, BUF_SIZE, stdin); // yes or no
+		oper[strlen(oper)-1] = '\0'; // 공백 제거
+
+		// 시작 공백 제거
+		while(oper[0] == ' '){
+			memmove(oper, oper + 1, strlen(oper));
+		}		
+		
+		if(!strcasecmp(oper, "Y") || !strcasecmp(oper, "y")){
+			//파일 삭제
+			if(unlink(cur->path) == -1){
+				fprintf(stderr, "%s delete error", cur->path);
+				return;
+			}
+			else{
+				del_node(list, cur->set_num, cur->idx_num); // 해당 노드 연결 리스트에서 삭제
+				cur = pre->next; // 삭제했으므로 cur 위치 복구
+			}
+		}
+		else if(!strcasecmp(oper, "N") && !strcasecmp(oper, "n")){
+			pre = cur;	
+			cur = cur->next;
+		}
+		else{
+			fprintf(stderr, "y, Y, n, N 중 하나 입력\n");
+			return;
+		}
+		free(oper);
+	
+		if(cur == NULL) break; // 마지막인 경우 종료
+	}
+	fprintf(stdout, "\n");
+	del_onlyList(list); // 하나만 남은 경우 제거
+	printOrLabel_list(list); // 프린트
+	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
 // scandir 필터(. 과 .. 제거)
@@ -433,8 +498,8 @@ int get_listLen(Node *list){
     return cnt;
 }
 
-// 리스트 전체 데이터 출력 && 넘버링
-void print_list(Node *list){
+// 리스트 전체 데이터 출력 or 라벨링
+void printOrLabel_list(Node *list){
 	Node *cur = list->next;
 	int cnt = 0;
 	int small_cnt = 1;
@@ -444,19 +509,20 @@ void print_list(Node *list){
 		if(strcmp(pre_hash, cur->hash)){
 			cnt++;
 			small_cnt = 1;
+
 			if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
 			//todo : 파일 크기 ,로 끊어서
 			fprintf(stdout, "---- Identical files #%d (%lld bytes - ", cnt, cur->filesize);
 			for (int i = 0; i < MD5_DIGEST_LENGTH; i++)
 				fprintf(stdout, "%02x", cur->hash[i]);
 			fprintf(stdout, ") ----\n");
-
+			
 			strcpy(pre_hash, cur->hash);
 		}
 
 		cur->set_num = cnt; // 현재 세트 번호 저장
 		cur->idx_num = small_cnt; // 세트 내 인덱스 번호 저장
-
+			
 		fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", small_cnt, cur->path, cur->mtime, cur->atime);
 		small_cnt++;
 
@@ -498,13 +564,13 @@ void del_node(Node *list, int set_num, int idx_num){
 			if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
 				pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
 				free(cur);
-				cur = pre->next;
+				return;
 			}
 			else{ // 마지막 인덱스 삭제할 경우
 				pre->next = NULL;
 				cur->next = NULL;
 				free(cur);
-				cur = NULL;
+				return;
 			}
 		}
 		else{

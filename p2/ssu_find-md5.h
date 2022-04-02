@@ -46,6 +46,7 @@ typedef struct Queue{
 void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main);
 void option(Node *list);
 void option_d(char *splitOper[OPTION_LEN], Node *list);
+void option_i(int set_idx, Node *list);
 
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
@@ -55,7 +56,7 @@ void get_searchtime(struct timeval start, struct timeval end);
 
 int get_listLen(Node *list);
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);
-void print_list(Node *list);
+void printOrLabel_list(Node *list);
 void delete_list(Node *list);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
 void del_node(Node *list, int set_num, int idx_num);
