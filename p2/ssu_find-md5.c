@@ -184,7 +184,8 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	}
 	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 
-	struct timeval end;
+	struct timeval end; 
+	gettimeofday(&end, NULL); // 종료 시간 측정
 
 	del_onlyList(list); // 중복파일 없는 인덱스 삭제
 
@@ -203,6 +204,113 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 
 	print_list(list); // 리스트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
+	option(list); // 옵션 실행
+}
+
+void option(Node *list){
+	while(1){
+		fprintf(stdout, ">> ");
+
+		char oper[BUF_SIZE];
+		fgets(oper, BUF_SIZE, stdin); // 명령어 입력
+		oper[strlen(oper)-1] = '\0'; // 공백 제거
+
+		// 시작 공백 제거
+		while(oper[0] == ' '){
+			memmove(oper, oper + 1, strlen(oper));
+		}
+
+		char *splitOper[OPTION_LEN] = {NULL, }; // 명령어 split
+		char *ptr = strtok(oper, " "); // 공백 기준으로 문자열 자르기
+
+		int idx = 0;
+		bool goNext = true;
+		while (ptr != NULL){
+			if(idx < OPTION_LEN) splitOper[idx] = ptr;
+			else{
+				fprintf(stderr, "option 입력 초과\n");
+				goNext = false; // 다시 프롬프트 출력
+				break;
+			}			
+			idx++;
+			ptr = strtok(NULL, " ");
+		}		
+		// INDEX 입력 없을 경우
+		if(splitOper[0] == NULL){
+			fprintf(stderr, "index 입력이 없음\n");
+		}
+		else if(!strcmp(splitOper[0], "exit")){
+			fprintf(stdout, ">> Back to Prompt\n");
+			break;
+		}
+		else if(goNext && !strcmp(splitOper[1], "d")){ // d옵션
+			if(splitOper[2] == NULL)
+				fprintf(stderr, "LIST_IDX 입력 x\n");
+			else option_d(splitOper, list);
+		}
+		else if(goNext && !strcmp(splitOper[1], "i")){ // i옵션
+
+		}
+		else if(goNext && !strcmp(splitOper[1], "f")){ // f옵션
+
+		}
+		else if(goNext && !strcmp(splitOper[1], "t")){ // t옵션
+
+		}
+		else{
+			fprintf(stderr, "올바른 옵션을 입력해주세요\n");
+		}
+	}	
+}
+
+// d옵션
+void option_d(char *splitOper[OPTION_LEN], Node *list){
+	Node *cur = list->next;
+
+	char *set_idx = malloc(sizeof(char) * BUF_SIZE);
+	strcpy(set_idx, splitOper[0]);
+
+	// 세트 같을때까지 탐색
+	while (cur->set_num != atoi(set_idx)){
+		if(cur->next == NULL){
+			fprintf(stderr, "세트 범위 벗어남\n");
+			free(set_idx);
+			return;
+		}
+		cur = cur->next;
+	}
+
+	char *list_idx = malloc(sizeof(char) * BUF_SIZE);
+	strcpy(list_idx, splitOper[2]);
+
+	// 인덱스 같을때까지 탐색
+	while (cur->idx_num != atoi(list_idx)){
+		// 만약 같은 세트가 아닐경우 인덱스 범위 벗어남
+		if(cur->next == NULL || cur->set_num != atoi(set_idx)){
+			fprintf(stderr, "인덱스 범위 벗어남\n");
+			free(set_idx);
+			free(list_idx);
+			return;
+		}		
+		cur = cur->next;
+	}
+
+	free(set_idx);
+	free(list_idx);
+	
+	int set_num = cur->set_num; // 삭제할 세트 번호
+	int idx_num = cur->idx_num; // 삭제할 인덱스 번호
+
+	//파일 삭제
+	if(unlink(cur->path) == -1)
+		fprintf(stderr, "%s delete error", cur->path);
+	else{
+		fprintf(stdout, "\"%s\" has been deleted in #%d\n\n", cur->path, set_num);
+		del_node(list, set_num, idx_num); // 해당 노드 연결 리스트에서 삭제
+		del_onlyList(list); // 하나만 남은 경우 제거
+		print_list(list); // 프린트, 넘버링(인덱스 재배치)
+		fprintf(stdout, "\n");
+	}
 }
 
 // scandir 필터(. 과 .. 제거)
@@ -268,7 +376,6 @@ char* get_time(time_t stime, char * str){
 
 // 프로그램 종료
 void get_searchtime(struct timeval start, struct timeval end){
-	gettimeofday(&end, NULL);
 	end.tv_sec -= start.tv_sec; // 초 부분 계산
 
 	if(end.tv_usec < start.tv_usec){ // ms 연산 결과가 마이너스인 경우 고려
@@ -277,7 +384,7 @@ void get_searchtime(struct timeval start, struct timeval end){
 	}
 
 	end.tv_usec -= start.tv_usec;
-	printf("\nSearching time: %ld:%06ld(sec:usec)\n", end.tv_sec, end.tv_usec);
+	printf("\nSearching time: %ld:%06ld(sec:usec)\n\n", end.tv_sec, end.tv_usec);
 }
 
 // 리스트 끝에 추가
@@ -326,7 +433,7 @@ int get_listLen(Node *list){
     return cnt;
 }
 
-// 리스트 전체 데이터 출력
+// 리스트 전체 데이터 출력 && 넘버링
 void print_list(Node *list){
 	Node *cur = list->next;
 	int cnt = 0;
@@ -346,6 +453,9 @@ void print_list(Node *list){
 
 			strcpy(pre_hash, cur->hash);
 		}
+
+		cur->set_num = cnt; // 현재 세트 번호 저장
+		cur->idx_num = small_cnt; // 세트 내 인덱스 번호 저장
 
 		fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", small_cnt, cur->path, cur->mtime, cur->atime);
 		small_cnt++;
@@ -369,6 +479,39 @@ int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]){
     }
 	// 못 찾은 경우
     return -1;
+}
+
+// 특정 파일 삭제
+void del_node(Node *list, int set_num, int idx_num){
+    Node *cur = list->next; // head 다음
+	if(cur == NULL){
+		fprintf(stderr, "node is NULL\n");
+		return; // 빈 리스트일 경우 리턴	
+	}
+
+	Node *pre = list;
+
+    while(cur != NULL){
+		// 삭제할 인덱스 도달하면
+        if(cur->set_num == set_num && cur->idx_num == idx_num){
+			// 해당 인덱스 삭제
+			if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
+				pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
+				free(cur);
+				cur = pre->next;
+			}
+			else{ // 마지막 인덱스 삭제할 경우
+				pre->next = NULL;
+				cur->next = NULL;
+				free(cur);
+				cur = NULL;
+			}
+		}
+		else{
+			pre = cur;
+			cur = cur->next;
+		}
+    }
 }
 
 // 같은파일 있는지 찾고 없으면 삭제

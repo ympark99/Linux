@@ -13,6 +13,10 @@
     #define OPER_LEN 5
 #endif
 
+#ifndef OPTION_LEN
+    #define OPTION_LEN 3
+#endif
+
 #include <openssl/md5.h>
 
 // 동일 파일 링크드리스트
@@ -23,6 +27,8 @@ typedef struct Nodes{
 	char mtime[BUF_SIZE]; // mtime
 	char atime[BUF_SIZE]; // atime
 	unsigned char hash[BUF_SIZE]; // hash value
+	int set_num; // 현재 세트 번호
+	int idx_num; // 세트 내 인덱스 번호
 }Node;
 
 typedef struct QNode{
@@ -38,6 +44,9 @@ typedef struct Queue{
 }queue;
 
 void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main);
+void option(Node *list);
+void option_d(char *splitOper[OPTION_LEN], Node *list);
+
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
@@ -49,6 +58,7 @@ void append_list(Node *list, long long filesize, char *path, char *mtime, char *
 void print_list(Node *list);
 void delete_list(Node *list);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
+void del_node(Node *list, int set_num, int idx_num);
 void del_onlyList(Node *list);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);

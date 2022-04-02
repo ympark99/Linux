@@ -28,7 +28,7 @@ void ssu_sdup(){
 
 		int idx = 0;
 		while (ptr != NULL){
-			if(idx < OPER_LEN)	splitOper[idx] = ptr;
+			if(idx < OPER_LEN) splitOper[idx] = ptr;
 			idx++;
 			ptr = strtok(NULL, " ");
 		}
