@@ -13,21 +13,21 @@
 #include "ssu_find-md5.h"
 
 // md5 관련 함수 실행
-// 입력인자 : 명령어 split, 현재 링크드리스트
+// 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐
 // 인자배열 : fmd5, 파일 확장자, 최소크기, 최대크기, 디렉토리
-void ssu_find_md5(char *splitOper[OPER_LEN], Node *list, queue *q){
+void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, Node *list, queue *q, bool from_main){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
 
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
-	if((cnt = scandir(splitOper[4], &filelist, scandirFilter, alphasort)) == -1){
+	if((cnt = scandir(find_path, &filelist, scandirFilter, alphasort)) == -1){
         fprintf(stderr, "target is not directory\n");
 		return;
 	}
 
 	// 절대경로 변환
 	char dir_path[BUF_SIZE];
-	if(realpath(splitOper[4], dir_path) == NULL){
+	if(realpath(find_path, dir_path) == NULL){
 		fprintf(stderr, "realpath error\n");
 		return;
 	}
@@ -163,12 +163,11 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list, queue *q){
         // 디렉토리일 경우
         else if(fileOrDir == 2){
             // 루트에서부터 탐색시, proc, run, sys 제외
-			if(!strcmp(dir_path, "/")){
+			if(!strcmp(find_path, "/")){
 				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
 					continue;
 			}
 			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
-			printf("q pop : %s\n", pop_queue(q));
         }
     }
 
@@ -177,14 +176,21 @@ void ssu_find_md5(char *splitOper[OPER_LEN], Node *list, queue *q){
 	}
 	free(filelist);
 
-	// todo : 큐 빌때까지 bfs탐색
-	// bfs이므로 절대경로, 아스키 순서로 정렬되어있음
-
+	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
+	while (!isEmpty_queue(q)){
+		// printf("q pop : %s\n", pop_queue(q));
+		ssu_find_md5(splitOper, pop_queue(q), list, q, false);
+	}
+	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 
 	del_onlyList(list); // 중복파일 없는 인덱스 삭제
 
 	int list_size = get_listLen(list);
 	if(list_size == 0){
+		if(realpath(find_path, dir_path) == NULL){
+			fprintf(stderr, "realpath error\n");
+			return;
+		}
 		fprintf(stdout, "No duplicates in %s\n", dir_path);
 		return;
 	}
@@ -422,7 +428,7 @@ void swap_node(Node *node1, Node *node2){
 	strcpy(node2->hash, hash);
 }
 
-bool isEmpty(queue *q){
+bool isEmpty_queue(queue *q){
 	return q->cnt == 0;
 }
 
@@ -432,7 +438,7 @@ void push_queue(queue *q, char path[BUF_SIZE]){
 	strcpy(newNode->path, path);
     newNode->next = NULL;
 
-    if (isEmpty(q)) // 큐가 비어있을 때
+    if (isEmpty_queue(q)) // 큐가 비어있을 때
         q->front = newNode;
     else
         q->rear->next = newNode; //맨 뒤의 다음을 newNode로 설정
@@ -445,7 +451,7 @@ void push_queue(queue *q, char path[BUF_SIZE]){
 char *pop_queue(queue *q){
     static char data[BUF_SIZE];
     Qnode *ptr;
-    if (isEmpty(q)){
+    if (isEmpty_queue(q)){
         fprintf(stderr, "Error : Queue is empty!\n");
         return data;
     }

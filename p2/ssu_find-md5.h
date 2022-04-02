@@ -37,7 +37,7 @@ typedef struct Queue{
 	int cnt; // 큐 안의 노드 개수
 }queue;
 
-void ssu_find_md5(char *splitOper[OPER_LEN], Node *list, queue *q);
+void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, Node *list, queue *q, bool from_main);
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
@@ -53,7 +53,7 @@ void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
 
 void init_queue(queue *q);
-bool isEmpty(queue *q);
+bool isEmpty_queue(queue *q);
 void push_queue(queue *q, char path[BUF_SIZE]);
 char *pop_queue(queue *q);
 

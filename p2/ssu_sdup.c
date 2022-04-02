@@ -47,7 +47,7 @@ void ssu_sdup(){
 				// 링크드리스트 head 선언
 				Node *head = malloc(sizeof(Node));
 				head->next = NULL;
-				ssu_find_md5(splitOper, head, &q);
+				ssu_find_md5(splitOper, splitOper[4], head, &q, true);
 				delete_list(head); // 링크드리스트 제거
 			}
 		}
