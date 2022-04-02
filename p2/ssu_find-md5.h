@@ -37,11 +37,12 @@ typedef struct Queue{
 	int cnt; // 큐 안의 노드 개수
 }queue;
 
-void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, Node *list, queue *q, bool from_main);
+void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main);
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
 char* get_time(time_t stime, char * str);
+void get_searchtime(struct timeval start, struct timeval end);
 
 int get_listLen(Node *list);
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);

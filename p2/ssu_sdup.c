@@ -5,6 +5,8 @@
 #include <dirent.h> // scandir 사용
 #include <ctype.h>
 #include <stdbool.h>
+#include <openssl/md5.h>
+#include <sys/time.h>
 #include "ssu_sdup.h"
 #include "ssu_help.h"
 #include "ssu_find-md5.h"
@@ -47,7 +49,12 @@ void ssu_sdup(){
 				// 링크드리스트 head 선언
 				Node *head = malloc(sizeof(Node));
 				head->next = NULL;
-				ssu_find_md5(splitOper, splitOper[4], head, &q, true);
+
+				// 프로그램 시간 계산
+				struct timeval start;
+				gettimeofday(&start, NULL);		
+			
+				ssu_find_md5(splitOper, splitOper[4], start, head, &q, true);
 				delete_list(head); // 링크드리스트 제거
 			}
 		}

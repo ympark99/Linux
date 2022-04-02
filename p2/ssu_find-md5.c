@@ -10,12 +10,13 @@
 #include <dirent.h> // scandir 사용
 #include <math.h> // modf 사용
 #include <openssl/md5.h>
+#include <sys/time.h> // gettimeofday 사용
 #include "ssu_find-md5.h"
 
 // md5 관련 함수 실행
 // 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐
 // 인자배열 : fmd5, 파일 확장자, 최소크기, 최대크기, 디렉토리
-void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, Node *list, queue *q, bool from_main){
+void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
 
@@ -179,9 +180,11 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, Node *list, queue 
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
 		// printf("q pop : %s\n", pop_queue(q));
-		ssu_find_md5(splitOper, pop_queue(q), list, q, false);
+		ssu_find_md5(splitOper, pop_queue(q), start, list, q, false);
 	}
 	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
+
+	struct timeval end;
 
 	del_onlyList(list); // 중복파일 없는 인덱스 삭제
 
@@ -199,6 +202,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, Node *list, queue 
 	sort_list(list, list_size);
 
 	print_list(list); // 리스트 출력
+	get_searchtime(start, end); // 탐색 시간 출력
 }
 
 // scandir 필터(. 과 .. 제거)
@@ -260,6 +264,20 @@ char* get_time(time_t stime, char * str){
 
 	strftime(str, BUF_SIZE, "%Y-%m-%d %H:%M:%S", tm);
 	return str;
+}
+
+// 프로그램 종료
+void get_searchtime(struct timeval start, struct timeval end){
+	gettimeofday(&end, NULL);
+	end.tv_sec -= start.tv_sec; // 초 부분 계산
+
+	if(end.tv_usec < start.tv_usec){ // ms 연산 결과가 마이너스인 경우 고려
+		end.tv_sec--;
+		end.tv_usec += 1000000;
+	}
+
+	end.tv_usec -= start.tv_usec;
+	printf("\nSearching time: %ld:%06ld(sec:usec)\n", end.tv_sec, end.tv_usec);
 }
 
 // 리스트 끝에 추가
