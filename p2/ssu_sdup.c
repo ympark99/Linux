@@ -50,9 +50,15 @@ void ssu_sdup(){
 				Node *head = malloc(sizeof(Node));
 				head->next = NULL;
 
+				// 파일경로에 ~입력시 .으로 바꿈
+				if(splitOper[4][0] == '~')
+					splitOper[4][0] = '.';
+
+				printf("%s\n", splitOper[4]);
+
 				// 프로그램 시간 계산
 				struct timeval start;
-				gettimeofday(&start, NULL);		
+				gettimeofday(&start, NULL);
 			
 				ssu_find_md5(splitOper, splitOper[4], start, head, &q, true);
 				delete_list(head); // 링크드리스트 제거
