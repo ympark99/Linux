@@ -181,7 +181,6 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
-		// printf("q pop : %s\n", pop_queue(q));
 		ssu_find_md5(splitOper, pop_queue(q), start, list, q, false);
 	}
 	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
@@ -260,7 +259,7 @@ void option(Node *list){
 			option_i(atoi(splitOper[0]), list);
 		}
 		else if(goNext && !strcmp(splitOper[1], "f")){ // f옵션
-
+			option_f(atoi(splitOper[0]), list);
 		}
 		else if(goNext && !strcmp(splitOper[1], "t")){ // t옵션
 
@@ -361,7 +360,7 @@ void option_i(int set_idx, Node *list){
 			}
 		}
 		else if(!strcasecmp(oper, "N") && !strcasecmp(oper, "n")){
-			pre = cur;	
+			pre = cur;
 			cur = cur->next;
 		}
 		else{
@@ -373,6 +372,49 @@ void option_i(int set_idx, Node *list){
 		if(cur == NULL) break; // 마지막인 경우 종료
 	}
 	fprintf(stdout, "\n");
+	del_onlyList(list); // 하나만 남은 경우 제거
+	print_list(list); // 프린트
+	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
+}
+
+// f옵션
+void option_f(int set_idx, Node *list){
+	Node *cur = list->next;
+	Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
+
+	// 세트 같을때까지 탐색
+	while (cur->set_num != set_idx){
+		if(cur->next == NULL){
+			fprintf(stderr, "세트 범위 벗어남\n");
+			return;
+		}
+		pre = cur;
+		cur = cur->next;
+	}
+
+	Node *recent = get_recent(set_idx, cur); // 가장 최근 시간 노드 구하기
+
+	// 세트 내에서 탐색
+	while (cur->set_num == set_idx){
+		// 가장 최근 수정 노드 아니라면
+		if(cur != recent){
+			//파일 삭제
+			if(unlink(cur->path) == -1){
+				fprintf(stderr, "%s delete error", cur->path);
+				return;
+			}
+			else{
+				del_node(list, cur->set_num, cur->idx_num); // 해당 노드 연결 리스트에서 삭제
+				cur = pre->next; // 삭제했으므로 cur 위치 복구	
+			}		
+		}
+		else{ // 최근 수정 노드인 경우
+			pre = cur;
+			cur = cur->next;
+		}
+		if(cur == NULL) break; // 마지막인 경우 종료
+	}
+	fprintf(stdout, "Left file in #%d : %s %-15s\n\n", recent->set_num, recent->path, recent->mtime);
 	del_onlyList(list); // 하나만 남은 경우 제거
 	print_list(list); // 프린트
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
@@ -449,12 +491,12 @@ void get_searchtime(struct timeval start, struct timeval end){
 	}
 
 	end.tv_usec -= start.tv_usec;
-	printf("\nSearching time: %ld:%06ld(sec:usec)\n\n", end.tv_sec, end.tv_usec);
+	fprintf(stdout, "\nSearching time: %ld:%06ld(sec:usec)\n\n", end.tv_sec, end.tv_usec);
 }
 
 const char *size2comma(long long n){ 
-	static char comma_str[64];
-	char str[64];
+	static char comma_str[COMMA_SIZE];
+	char str[COMMA_SIZE];
 	int idx, len, cidx = 0, mod; 
 	
 	sprintf(str, "%lld", n); 
@@ -671,6 +713,32 @@ void swap_node(Node *node1, Node *node2){
 	strcpy(node2->mtime, mtime);
 	strcpy(node2->atime, atime);
 	strcpy(node2->hash, hash);
+}
+
+// 가장 최근 시간 노드 구하기
+Node *get_recent(int set_idx, Node *cur){
+	Node *recent;
+
+	// 파일 정보 조회
+	struct stat st;
+	time_t recent_time = -9999999;
+
+	// 세트 내에서 탐색
+	while (cur->set_num == set_idx){
+		// 파일 정보 얻기
+		if(lstat(cur->path, &st) == -1){
+			fprintf(stderr, "stat error\n");
+			exit(1);
+		}
+		// 가장 최근 시간 노드 구하기
+		if(recent_time < st.st_mtime){
+			recent_time = st.st_mtime;
+			recent = cur;
+		}
+		cur = cur->next;
+		if(cur == NULL) break; // 마지막인 경우 종료
+	}
+	return recent;
 }
 
 bool isEmpty_queue(queue *q){

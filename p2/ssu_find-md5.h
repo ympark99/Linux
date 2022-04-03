@@ -9,6 +9,14 @@
     #define BUF_SIZE 1024
 #endif
 
+#ifndef PATH_SIZE
+    #define PATH_SIZE 4096
+#endif
+
+#ifndef COMMA_SIZE
+    #define COMMA_SIZE 64
+#endif
+
 #ifndef OPER_LEN
     #define OPER_LEN 5
 #endif
@@ -23,7 +31,7 @@
 typedef struct Nodes{
 	struct Nodes *next; // 다음 주소
 	long long filesize; // 파일 크기(byte)
-	char path[BUF_SIZE]; // 파일 경로
+	char path[PATH_SIZE]; // 파일 경로
 	char mtime[BUF_SIZE]; // mtime
 	char atime[BUF_SIZE]; // atime
 	unsigned char hash[BUF_SIZE]; // hash value
@@ -47,6 +55,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 void option(Node *list);
 void option_d(char *splitOper[OPTION_LEN], Node *list);
 void option_i(int set_idx, Node *list);
+void option_f(int set_idx, Node *list);
 
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
@@ -64,6 +73,7 @@ void del_node(Node *list, int set_num, int idx_num);
 void del_onlyList(Node *list);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
+Node *get_recent(int set_idx, Node *cur);
 
 void init_queue(queue *q);
 bool isEmpty_queue(queue *q);

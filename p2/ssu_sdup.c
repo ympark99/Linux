@@ -54,8 +54,6 @@ void ssu_sdup(){
 				if(splitOper[4][0] == '~')
 					splitOper[4][0] = '.';
 
-				printf("%s\n", splitOper[4]);
-
 				// 프로그램 시간 계산
 				struct timeval start;
 				gettimeofday(&start, NULL);
