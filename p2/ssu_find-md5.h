@@ -53,10 +53,11 @@ int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
 char* get_time(time_t stime, char * str);
 void get_searchtime(struct timeval start, struct timeval end);
-
 int get_listLen(Node *list);
+const char *size2comma(long long n);
+
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);
-void printOrLabel_list(Node *list);
+void print_list(Node *list);
 void delete_list(Node *list);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
 void del_node(Node *list, int set_num, int idx_num);

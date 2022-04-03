@@ -205,7 +205,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	// 파일크기대로 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
 	sort_list(list, list_size);
 
-	printOrLabel_list(list); // 리스트 출력
+	print_list(list); // 리스트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
 	option(list); // 옵션 실행
 }
@@ -316,7 +316,7 @@ void option_d(char *splitOper[OPTION_LEN], Node *list){
 		fprintf(stdout, "\"%s\" has been deleted in #%d\n\n", cur->path, set_num);
 		del_node(list, set_num, idx_num); // 해당 노드 연결 리스트에서 삭제
 		del_onlyList(list); // 하나만 남은 경우 제거
-		printOrLabel_list(list); // 프린트, 넘버링(인덱스 재배치)
+		print_list(list); // 프린트, 넘버링(인덱스 재배치)
 		if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 	}
 }
@@ -374,7 +374,7 @@ void option_i(int set_idx, Node *list){
 	}
 	fprintf(stdout, "\n");
 	del_onlyList(list); // 하나만 남은 경우 제거
-	printOrLabel_list(list); // 프린트
+	print_list(list); // 프린트
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
@@ -452,6 +452,23 @@ void get_searchtime(struct timeval start, struct timeval end){
 	printf("\nSearching time: %ld:%06ld(sec:usec)\n\n", end.tv_sec, end.tv_usec);
 }
 
+const char *size2comma(long long n){ 
+	static char comma_str[64];
+	char str[64];
+	int idx, len, cidx = 0, mod; 
+	
+	sprintf(str, "%lld", n); 
+	len = strlen(str); mod = len % 3; 
+	for(idx = 0; idx < len; idx++){
+		if(idx != 0 && (idx) % 3 == mod){ 
+			comma_str[cidx++] = ','; 
+		} 
+	comma_str[cidx++] = str[idx]; 
+	} 
+	comma_str[cidx] = 0x00; 
+	return comma_str; 
+}
+
 // 리스트 끝에 추가
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]){
 	// 리스트 빌 경우(처음인경우 포함)
@@ -498,8 +515,8 @@ int get_listLen(Node *list){
     return cnt;
 }
 
-// 리스트 전체 데이터 출력 or 라벨링
-void printOrLabel_list(Node *list){
+// 리스트 전체 데이터 출력 and 라벨링
+void print_list(Node *list){
 	Node *cur = list->next;
 	int cnt = 0;
 	int small_cnt = 1;
@@ -512,7 +529,8 @@ void printOrLabel_list(Node *list){
 
 			if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
 			//todo : 파일 크기 ,로 끊어서
-			fprintf(stdout, "---- Identical files #%d (%lld bytes - ", cnt, cur->filesize);
+			// fprintf(stdout, "---- Identical files #%d (%lld bytes - ", cnt, cur->filesize);
+			fprintf(stdout, "---- Identical files #%d (%s bytes - ", cnt, size2comma(cur->filesize));
 			for (int i = 0; i < MD5_DIGEST_LENGTH; i++)
 				fprintf(stdout, "%02x", cur->hash[i]);
 			fprintf(stdout, ") ----\n");
