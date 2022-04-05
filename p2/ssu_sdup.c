@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <pwd.h>
 #include "ssu_sdup.h"
 
@@ -36,7 +37,7 @@ void ssu_sdup(){
 		}
 
 		// fmd5 or fsha1 명령 시
-		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){
+		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){		
 			// 명령어 인자 틀리면 에러 처리
 			if(idx != OPER_LEN)
 				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
@@ -58,23 +59,30 @@ void ssu_sdup(){
 					free(str);
 				}
 
-				// 프로세스 생성 및 실행
-				int pid, status;
-				pid = fork();
-				if(pid < 0){
-					fprintf(stderr, "fork error :");
-					exit(1);
+				int fileOrDir = check_fileOrDir(splitOper[4]); // 파일 or 디렉토리인지 체크
+				// TARGET_DIRECTORY 검사 (디렉토리 아닌경우)
+				if(fileOrDir != 2){
+					fprintf(stderr, "디렉토리가 아님\n");
 				}
-				else if(pid == 0){ // 0인 경우 자식 프로세스
-				// fmd5 또는 sha1 실행
-				!strcmp(splitOper[0], "fmd5") ?
-					execl("./ssu_find-md5", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL) 
-					:
-					execl("./ssu_find-sha1", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL);
-					exit(0);
-				}
-				else{ // 부모 프로세스
-					wait(&status); // child 종료때까지 대기
+				else{
+					// 프로세스 생성 및 실행
+					int pid, status;
+					pid = fork();
+					if(pid < 0){
+						fprintf(stderr, "fork error :");
+						exit(1);
+					}
+					else if(pid == 0){ // 0인 경우 자식 프로세스
+					// fmd5 또는 sha1 실행
+					!strcmp(splitOper[0], "fmd5") ?
+						execl("./ssu_find-md5", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL) 
+						:
+						execl("./ssu_find-sha1", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL);
+						exit(0);
+					}
+					else{ // 부모 프로세스
+						wait(&status); // child 종료때까지 대기
+					}
 				}
 			}
 		}
@@ -117,4 +125,32 @@ void ssu_sdup(){
 		}
 		free(oper);
 	}
+}
+
+// 파일, 디렉토리 판별(파일 : 1, 디렉토리 : 2 리턴)
+int check_fileOrDir(char *path){
+	struct stat st;
+	int fileOrDir = 0;
+	// 파일 정보 얻기
+	if(lstat(path, &st) == -1){
+		fprintf(stderr, "stat error -> checkfile\n");
+		return -1;
+	}
+
+	// 파일 형식
+	switch (st.st_mode & S_IFMT){
+		case S_IFREG:
+			fileOrDir = 1;
+			break;
+		case S_IFDIR:
+			fileOrDir = 2;
+			break;	
+		case S_IFIFO:
+			fileOrDir = 0;
+			break;
+		case S_IFLNK:
+			fileOrDir = 0;
+			break;
+	}
+	return fileOrDir;
 }

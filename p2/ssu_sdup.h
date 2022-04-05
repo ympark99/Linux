@@ -10,5 +10,6 @@
 #endif
 
 void ssu_sdup();
+int check_fileOrDir(char *path);
 
 #endif

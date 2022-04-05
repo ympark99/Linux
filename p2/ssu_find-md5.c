@@ -15,6 +15,9 @@
 #include "ssu_find-md5.h"
 
 // todo : 최근 파일 비교 맞는지?
+int qcnt = 0;
+int nodecnt = 0;
+int pop = 0;
 
 int main(int argc, char *argv[OPER_LEN]){
 	// 큐 선언
@@ -36,17 +39,18 @@ int main(int argc, char *argv[OPER_LEN]){
 void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
-
+	// test
+	printf("%s q: %d node : %d pop : %d\n", find_path, qcnt, nodecnt, pop);
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
 	if((cnt = scandir(find_path, &filelist, scandirFilter, alphasort)) == -1){
-        fprintf(stderr, "target is not directory\n");
+		fprintf(stderr, "%s error, ERROR : %s\n", find_path, strerror(errno));
 		return;
 	}
 
 	// 절대경로 변환
 	char dir_path[BUF_SIZE];
 	if(realpath(find_path, dir_path) == NULL){
-		fprintf(stderr, "realpath error\n");
+		fprintf(stderr, "realpath error : %s\n", strerror(errno));
 		return;
 	}
 
@@ -82,7 +86,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			struct stat st;
 			// 파일 정보 얻기
 			if(lstat(pathname, &st) == -1){
-				fprintf(stderr, "stat error\n");
+				fprintf(stderr, "stat error : %s\n", strerror(errno));
 				continue;
 			}
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
@@ -98,7 +102,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 					fraction = modf(min_byte, &integer);
 					// 실수 입력한 경우 에러
 					if(fraction != 0){
-						fprintf(stderr, "min size error\n");
+						fprintf(stderr, "min size error : %s\n", strerror(errno));
 						return;
 					}
 				}
@@ -115,7 +119,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 					min_byte *= (1024 * 1024 * 1024);
 				}
 				else{
-					fprintf(stderr, "min size error\n");
+					fprintf(stderr, "min size error : %s\n", strerror(errno));
 					return;					
 				}
 				// 최소 크기보다 작은 경우 패스
@@ -160,7 +164,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			// md5값 구하기
 			FILE *fp = fopen(pathname, "r");
 			if (fp == NULL){ // fopen 에러시 패스
-				fprintf(stderr, "fopen error\n");
+				fprintf(stderr, "fopen error : %s\n", strerror(errno));
 				continue;
 			}
 			unsigned char filehash[MD5_DIGEST_LENGTH]; // 해쉬값 저장할 문자열
@@ -174,7 +178,8 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			strcpy(astr, get_time(st.st_atime, mstr));
 
 			//todo : 리스트가 아닌 파일에 저장
-			append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가	
+			append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가
+			nodecnt++;	
 
 			free(mstr);
 			free(astr);
@@ -188,6 +193,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			}
 			//todo : 큐 동적배열아닌 파일로 할지 고민
 			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
+			qcnt++;
         }
     }
 
@@ -196,11 +202,12 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	}
 	free(filelist);
 
+	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
+		qcnt--;
 		ssu_find_md5(splitOper, pop_queue(q), start, list, q, false);
 	}
-	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 
 	struct timeval end; 
 	gettimeofday(&end, NULL); // 종료 시간 측정
@@ -211,7 +218,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	int list_size = get_listLen(list);
 	if(list_size == 0){
 		if(realpath(find_path, dir_path) == NULL){
-			fprintf(stderr, "realpath error\n");
+			fprintf(stderr, "realpath error : %s\n", strerror(errno));
 			return;
 		}
 		fprintf(stdout, "No duplicates in %s\n", dir_path);
@@ -881,6 +888,6 @@ char *pop_queue(queue *q){
     q->front = ptr->next;  // ptr의 다음 노드를 front로 설정
     free(ptr);
     q->cnt--;
-
+	pop++;
     return data;
 }
