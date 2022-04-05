@@ -56,6 +56,7 @@ void option(Node *list);
 void option_d(char *splitOper[OPTION_LEN], Node *list);
 void option_i(int set_idx, Node *list);
 void option_f(int set_idx, Node *list);
+void option_t(int set_idx, Node *list);
 
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);

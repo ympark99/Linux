@@ -11,7 +11,10 @@
 #include <math.h> // modf 사용
 #include <openssl/md5.h>
 #include <sys/time.h> // gettimeofday 사용
+#include <errno.h>
 #include "ssu_find-md5.h"
+
+// todo : 최근 파일 비교 맞는지?
 
 int main(int argc, char *argv[OPER_LEN]){
 	// 큐 선언
@@ -276,7 +279,7 @@ void option(Node *list){
 			option_f(atoi(splitOper[0]), list);
 		}
 		else if(goNext && !strcmp(splitOper[1], "t")){ // t옵션
-
+			option_t(atoi(splitOper[0]), list);
 		}
 		else{
 			fprintf(stderr, "올바른 옵션을 입력해주세요\n");
@@ -428,7 +431,72 @@ void option_f(int set_idx, Node *list){
 		}
 		if(cur == NULL) break; // 마지막인 경우 종료
 	}
-	fprintf(stdout, "Left file in #%d : (%s %-15s)\n\n", recent->set_num, recent->path, recent->mtime);
+	fprintf(stdout, "Left file in #%d : %s (%-15s)\n\n", recent->set_num, recent->path, recent->mtime);
+	del_onlyList(list); // 하나만 남은 경우 제거
+	print_list(list); // 프린트
+	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
+}
+
+// t옵션
+void option_t(int set_idx, Node *list){
+
+	// 휴지통 경로 생성 (이미 존재한 경우는 에러x)
+	if(mkdir("trash", 0776) == -1 && errno != EEXIST){ 
+		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
+		exit(1);
+	}
+
+	Node *cur = list->next;
+	Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
+
+	// 세트 같을때까지 탐색
+	while (cur->set_num != set_idx){
+		if(cur->next == NULL){
+			fprintf(stderr, "세트 범위 벗어남\n");
+			return;
+		}
+		pre = cur;
+		cur = cur->next;
+	}
+
+	Node *recent = get_recent(set_idx, cur); // 가장 최근 시간 노드 구하기
+
+	// 세트 내에서 탐색
+	while (cur->set_num == set_idx){
+		// 가장 최근 수정 노드 아니라면
+		if(cur != recent){
+			// 파일 이동을 위해 먼저 복사하기
+			char *str = malloc(sizeof(char) * PATH_SIZE);
+			sprintf(str, "trash%s", strrchr(cur->path, '/')); // trash 파일 경로 만들어주기
+			if(link(cur->path, str) == -1){
+				if(errno != EEXIST){
+					fprintf(stderr, "link error\n");
+					exit(1);
+				}
+				// todo : 같은 이름의 파일이 존재할 경우
+				else{
+					fprintf(stdout, "same name file\n");
+				}
+			}
+			free(str);
+
+			// 그 후 기존 파일 삭제
+			if(unlink(cur->path) == -1){
+				fprintf(stderr, "%s delete error", cur->path);
+				return;
+			}
+			else{
+				del_node(list, cur->set_num, cur->idx_num); // 해당 노드 연결 리스트에서 삭제
+				cur = pre->next; // 삭제했으므로 cur 위치 복구	
+			}
+		}
+		else{ // 최근 수정 노드인 경우
+			pre = cur;
+			cur = cur->next;
+		}
+		if(cur == NULL) break; // 마지막인 경우 종료
+	}
+	fprintf(stdout, "All files in #%d have moved to Trash except \"%s\" (%-15s)\n\n", recent->set_num, recent->path, recent->mtime);
 	del_onlyList(list); // 하나만 남은 경우 제거
 	print_list(list); // 프린트
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
@@ -584,8 +652,7 @@ void print_list(Node *list){
 			small_cnt = 1;
 
 			if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
-			//todo : 파일 크기 ,로 끊어서
-			// fprintf(stdout, "---- Identical files #%d (%lld bytes - ", cnt, cur->filesize);
+
 			fprintf(stdout, "---- Identical files #%d (%s bytes - ", cnt, size2comma(cur->filesize));
 			for (int i = 0; i < MD5_DIGEST_LENGTH; i++)
 				fprintf(stdout, "%02x", cur->hash[i]);
