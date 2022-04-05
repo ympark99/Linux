@@ -35,8 +35,8 @@ void ssu_sdup(){
 			ptr = strtok(NULL, " ");
 		}
 
-		// fmd5 명령 시
-		if(splitOper[0] != NULL && !strcmp(splitOper[0], "fmd5")){
+		// fmd5 or fsha1 명령 시
+		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){
 			// 명령어 인자 틀리면 에러 처리
 			if(idx != OPER_LEN)
 				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
@@ -63,27 +63,21 @@ void ssu_sdup(){
 				pid = fork();
 				if(pid < 0){
 					fprintf(stderr, "fork error :");
-					exit(0);
+					exit(1);
 				}
 				else if(pid == 0){ // 0인 경우 자식 프로세스
-					execl("./ssu_find-md5", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL);
-					exit(1);
+				// fmd5 또는 sha1 실행
+				!strcmp(splitOper[0], "fmd5") ?
+					execl("./ssu_find-md5", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL) 
+					:
+					execl("./ssu_find-sha1", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL);
+					exit(0);
 				}
 				else{ // 부모 프로세스
 					wait(&status); // child 종료때까지 대기
 				}
 			}
 		}
-		// fsha1 명령 시
-		else if(splitOper[0] != NULL && !strcmp(splitOper[0], "fsha1")){
-			// 명령어 인자 틀리면 에러 처리
-			if(idx != OPER_LEN){
-				fprintf(stdout, "error\n");
-			}
-			else{ // ssu_find-sha1.c 실행
-				// ssu_find_md5(splitOper);
-			}
-		}		
 		// exit 입력 시 종료
 		else if(splitOper[0] != NULL && !strcmp(oper, "exit")){
 			// exit 뒤 인자 붙으면 help와 동일한 결과 출력
@@ -93,11 +87,11 @@ void ssu_sdup(){
 				pid = fork();
 				if(pid < 0){
 					fprintf(stderr, "fork error :");
-					exit(0);
+					exit(1);
 				}
 				else if(pid == 0){ // 0인 경우 자식 프로세스
 					execl("./ssu_help", "", NULL);
-					exit(1);
+					exit(0);
 				}
 				else{ // 부모 프로세스
 					wait(&status); // child 종료때까지 대기
@@ -111,11 +105,11 @@ void ssu_sdup(){
 				pid = fork();
 				if(pid < 0){
 					fprintf(stderr, "fork error :");
-					exit(0);
+					exit(1);
 				}
 				else if(pid == 0){ // 0인 경우 자식 프로세스
 					execl("./ssu_help", "", NULL);
-					exit(1);
+					exit(0);
 				}
 				else{ // 부모 프로세스
 					wait(&status); // child 종료때까지 대기
