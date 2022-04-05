@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include "ssu_help.h"
 
+int main(int argc, char *argv[]){
+	ssu_help();
+}
+
 void ssu_help(){
 	printf("Usage:\n");
 	printf("  > fmd5/fsha1  [FILE_EXTENSION] [MINSIZE] [MAXSIZE] [TARGET_DIRECTORY]\n");

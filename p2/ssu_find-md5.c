@@ -13,6 +13,20 @@
 #include <sys/time.h> // gettimeofday 사용
 #include "ssu_find-md5.h"
 
+int main(int argc, char *argv[OPER_LEN]){
+	// 큐 선언
+	queue q;
+	init_queue(&q);
+	// 링크드리스트 head 선언
+	Node *head = malloc(sizeof(Node));
+	head->next = NULL;
+
+	struct timeval start;
+	gettimeofday(&start, NULL);
+	ssu_find_md5(argv, argv[4], start, head, &q, true);
+	delete_list(head); // 링크드리스트 제거	
+}
+
 // md5 관련 함수 실행
 // 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐
 // 인자배열 : fmd5, 파일 확장자, 최소크기, 최대크기, 디렉토리
@@ -588,6 +602,23 @@ void print_list(Node *list){
 
 		cur = cur->next;
 	}
+}
+
+// 메모리 해제
+void delete_list(Node *list){
+	Node *cur = list;
+	Node *next;
+	while (cur != NULL){
+		next = cur->next;
+		free(cur);
+		cur = next;
+	}	
+}
+
+// 큐 초기화
+void init_queue(queue *q){
+    q->front = q->rear = NULL; 
+    q->cnt = 0;
 }
 
 // 해쉬 일치할경우 인덱스 반환

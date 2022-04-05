@@ -9,10 +9,9 @@
 #include <openssl/md5.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <pwd.h>
 #include "ssu_sdup.h"
-#include "ssu_help.h"
-#include "ssu_find-md5.h"
 
 void ssu_sdup(){
 	while (1){
@@ -46,13 +45,6 @@ void ssu_sdup(){
 				fprintf(stderr, "올바른 확장자 입력이 아님\n");
 			// 최소, 최대 검사는 함수 내에서 진행
 			else{
-				// 큐 선언
-				queue q;
-				init_queue(&q);
-				// 링크드리스트 head 선언
-				Node *head = malloc(sizeof(Node));
-				head->next = NULL;
-
 				// 파일경로에 ~입력시 홈디렉토리로 바꿈
 				if(splitOper[4][0] == '~'){
 					struct passwd *pwd;
@@ -66,12 +58,20 @@ void ssu_sdup(){
 					free(str);
 				}
 
-				// 프로그램 시간 계산
-				struct timeval start;
-				gettimeofday(&start, NULL);
-			
-				ssu_find_md5(splitOper, splitOper[4], start, head, &q, true);
-				delete_list(head); // 링크드리스트 제거
+				// 프로세스 생성 및 실행
+				int pid, status;
+				pid = fork();
+				if(pid < 0){
+					fprintf(stderr, "fork error :");
+					exit(0);
+				}
+				else if(pid == 0){ // 0인 경우 자식 프로세스
+					execl("./ssu_find-md5", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL);
+					exit(1);
+				}
+				else{ // 부모 프로세스
+					wait(&status); // child 종료때까지 대기
+				}
 			}
 		}
 		// fsha1 명령 시
@@ -88,30 +88,39 @@ void ssu_sdup(){
 		else if(splitOper[0] != NULL && !strcmp(oper, "exit")){
 			// exit 뒤 인자 붙으면 help와 동일한 결과 출력
 			if(splitOper[1] != NULL){
-				ssu_help();
+				// 프로세스 생성 및 실행
+				int pid, status;
+				pid = fork();
+				if(pid < 0){
+					fprintf(stderr, "fork error :");
+					exit(0);
+				}
+				else if(pid == 0){ // 0인 경우 자식 프로세스
+					execl("./ssu_help", "", NULL);
+					exit(1);
+				}
+				else{ // 부모 프로세스
+					wait(&status); // child 종료때까지 대기
+				}
 			}
 			else break;
 		}	
 		else if(splitOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
-			ssu_help();
+				// 프로세스 생성 및 실행
+				int pid, status;
+				pid = fork();
+				if(pid < 0){
+					fprintf(stderr, "fork error :");
+					exit(0);
+				}
+				else if(pid == 0){ // 0인 경우 자식 프로세스
+					execl("./ssu_help", "", NULL);
+					exit(1);
+				}
+				else{ // 부모 프로세스
+					wait(&status); // child 종료때까지 대기
+				}
 		}
 		free(oper);
 	}
-}
-
-// 메모리 해제
-void delete_list(Node *list){
-	Node *cur = list;
-	Node *next;
-	while (cur != NULL){
-		next = cur->next;
-		free(cur);
-		cur = next;
-	}	
-}
-
-// 큐 초기화
-void init_queue(queue *q){
-    q->front = q->rear = NULL; 
-    q->cnt = 0;
 }
