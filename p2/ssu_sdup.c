@@ -2,11 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <dirent.h> // scandir 사용
 #include <ctype.h>
 #include <stdbool.h>
 #include <openssl/md5.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <pwd.h>
 #include "ssu_sdup.h"
 #include "ssu_help.h"
 #include "ssu_find-md5.h"
@@ -50,9 +53,18 @@ void ssu_sdup(){
 				Node *head = malloc(sizeof(Node));
 				head->next = NULL;
 
-				// 파일경로에 ~입력시 .으로 바꿈
-				if(splitOper[4][0] == '~')
-					splitOper[4][0] = '.';
+				// 파일경로에 ~입력시 홈디렉토리로 바꿈
+				if(splitOper[4][0] == '~'){
+					struct passwd *pwd;
+					if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
+						fprintf(stderr, "user id error");
+					}
+					memmove(splitOper[4], splitOper[4] + 1, strlen(splitOper[4])); // 맨 처음 ~ 제거
+					char *str = malloc(sizeof(char) * BUF_SIZE); // 임시로 저장해둘 문자열
+					strcpy(str, splitOper[4]);
+					sprintf(splitOper[4], "%s%s", pwd->pw_dir, str); // 홈디렉토리/하위경로로 합쳐줌
+					free(str);
+				}
 
 				// 프로그램 시간 계산
 				struct timeval start;

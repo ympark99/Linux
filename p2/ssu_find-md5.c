@@ -414,7 +414,7 @@ void option_f(int set_idx, Node *list){
 		}
 		if(cur == NULL) break; // 마지막인 경우 종료
 	}
-	fprintf(stdout, "Left file in #%d : %s %-15s\n\n", recent->set_num, recent->path, recent->mtime);
+	fprintf(stdout, "Left file in #%d : (%s %-15s)\n\n", recent->set_num, recent->path, recent->mtime);
 	del_onlyList(list); // 하나만 남은 경우 제거
 	print_list(list); // 프린트
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
