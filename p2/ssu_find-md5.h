@@ -51,7 +51,7 @@ typedef struct Queue{
 	int cnt; // 큐 안의 노드 개수
 }queue;
 
-void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main);
+void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main);
 void option(Node *list);
 void option_d(char *splitOper[OPTION_LEN], Node *list);
 void option_i(int set_idx, Node *list);

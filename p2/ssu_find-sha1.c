@@ -437,7 +437,6 @@ void option_f(int set_idx, Node *list){
 
 // t옵션
 void option_t(int set_idx, Node *list){
-
 	// 휴지통 경로 생성 (이미 존재한 경우는 에러x)
 	if(mkdir("trash", 0776) == -1 && errno != EEXIST){ 
 		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
@@ -472,9 +471,9 @@ void option_t(int set_idx, Node *list){
 					exit(1);
 				}
 				// todo : 같은 이름의 파일이 존재할 경우
-				else{
-					fprintf(stdout, "same name file\n");
-				}
+				// else{
+				// 	fprintf(stdout, "same name file\n");
+				// }
 			}
 			free(str);
 

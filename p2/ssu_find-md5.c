@@ -3,6 +3,7 @@
 #include <sys/stat.h> // stat 사용
 #include <sys/time.h>
 #include <unistd.h> // stat 사용
+#include <fcntl.h>
 #include <string.h> // string 관련 함수 사용
 #include <stdlib.h>
 #include <stdbool.h>
@@ -27,20 +28,27 @@ int main(int argc, char *argv[OPER_LEN]){
 	Node *head = malloc(sizeof(Node));
 	head->next = NULL;
 
+	// 찾은 파일 저장해둘 fp선언
+	FILE *dt = fopen("writeReadData.txt", "w+");
+	if(dt == NULL){
+		fprintf(stderr, "data file create error\n");
+		exit(1);
+	}
+
 	struct timeval start;
 	gettimeofday(&start, NULL);
-	ssu_find_md5(argv, argv[4], start, head, &q, true);
+	ssu_find_md5(argv, argv[4], start, head, &q, dt, true);
 	delete_list(head); // 링크드리스트 제거	
 }
 
 // md5 관련 함수 실행
-// 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐
+// 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐, 파일 포인터, 메인에서 왔는지
 // 인자배열 : fmd5, 파일 확장자, 최소크기, 최대크기, 디렉토리
-void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main){
+void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
 	// test
-	printf("%s q: %d node : %d pop : %d\n", find_path, qcnt, nodecnt, pop);
+	// printf("%s q: %d node : %d pop : %d\n", find_path, qcnt, nodecnt, pop);
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
 	if((cnt = scandir(find_path, &filelist, scandirFilter, alphasort)) == -1){
 		fprintf(stderr, "%s error, ERROR : %s\n", find_path, strerror(errno));
@@ -63,7 +71,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 		// 합쳤던 이전 하위파일명 문자열 제거
 		char* ptr = strrchr(pathname, '/'); // 합쳤던 /하위파일명 포인터 연결
 		if(ptr)	strncpy(ptr, "", 1); // 합쳤던 문자열 제거
-		
+
 		// 현재 하위파일명 문자열 붙이기
 		strcat(pathname, "/");
 		strcat(pathname, filelist[i]->d_name); // 경로 + '/파일이름'
@@ -84,10 +92,13 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 
 			// 파일 정보 조회
 			struct stat st;
+
 			// 파일 정보 얻기
-			if(lstat(pathname, &st) == -1){
+			if(lstat(pathname, &st) == -1){			
+				// 파일 읽기 권한 없으면 패스
+				if(!st.st_mode & S_IRWXU) continue;
 				fprintf(stderr, "stat error : %s\n", strerror(errno));
-				continue;
+				continue;	
 			}
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
 
@@ -161,10 +172,12 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				if(filesize > max_byte) continue;
 			}
 
+			// 파일 읽기 권한 없으면 패스
+			if(!st.st_mode & S_IRWXU) continue;
 			// md5값 구하기
 			FILE *fp = fopen(pathname, "r");
 			if (fp == NULL){ // fopen 에러시 패스
-				fprintf(stderr, "fopen error : %s\n", strerror(errno));
+				// fprintf(stderr, "fopen error for %s : %s\n", pathname, strerror(errno));
 				continue;
 			}
 			unsigned char filehash[MD5_DIGEST_LENGTH]; // 해쉬값 저장할 문자열
@@ -178,7 +191,13 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			strcpy(astr, get_time(st.st_atime, mstr));
 
 			//todo : 리스트가 아닌 파일에 저장
-			append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가
+			if(dt != NULL){
+				fputs(pathname, dt);
+				fputs("|", dt);
+				fputs(filehash, dt);
+				fputs("\n", dt);
+			}
+			// append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가
 			nodecnt++;	
 
 			free(mstr);
@@ -206,15 +225,28 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
 		qcnt--;
-		ssu_find_md5(splitOper, pop_queue(q), start, list, q, false);
+		ssu_find_md5(splitOper, pop_queue(q), start, list, q, dt, false);
 	}
+	printf("search end!!!!\n");
+	//test
+	fclose(dt);
+
+	dt = fopen("writeReadData.txt", "r");
+	if(dt == NULL)
+		fprintf(stderr, "fopen read error\n");
+
+	char buf[BUF_SIZE + BUF_SIZE];
+	while (!feof(dt)) {
+		fgets(buf, BUF_SIZE + BUF_SIZE, dt);
+	}
+	fclose(dt);
 
 	struct timeval end; 
 	gettimeofday(&end, NULL); // 종료 시간 측정
 
 	// todo : 파일에서 중복파일 거르기
 	del_onlyList(list); // 중복파일 없는 인덱스 삭제
-
+	// todo : 파일 리스트에 넘긴 후 fclose 및 삭제
 	int list_size = get_listLen(list);
 	if(list_size == 0){
 		if(realpath(find_path, dir_path) == NULL){
@@ -446,7 +478,6 @@ void option_f(int set_idx, Node *list){
 
 // t옵션
 void option_t(int set_idx, Node *list){
-
 	// 휴지통 경로 생성 (이미 존재한 경우는 에러x)
 	if(mkdir("trash", 0776) == -1 && errno != EEXIST){ 
 		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
@@ -481,9 +512,16 @@ void option_t(int set_idx, Node *list){
 					exit(1);
 				}
 				// todo : 같은 이름의 파일이 존재할 경우
-				else{
-					fprintf(stdout, "same name file\n");
-				}
+				// else{
+				// 	// fprintf(stdout, "same name file\n");
+				// 	// int num = 2;
+				// 	// char str2[PATH_SIZE];
+				// 	// // 다른 파일로 이름 바꿔주기(1, 2, ... 뒤에 붙이기)
+				// 	// do{
+				// 	// 	sprintf(str2, "%d%s", num, str);
+				// 	// 	num++;
+				// 	// } while(link(cur->path, str2) == -1 && errno == EEXIST);
+				// }
 			}
 			free(str);
 
