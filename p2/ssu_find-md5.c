@@ -17,6 +17,7 @@
 
 // todo : 최근 파일 비교 맞는지?
 int qcnt = 0;
+int filecnt = 0;
 int nodecnt = 0;
 int pop = 0;
 
@@ -48,7 +49,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
 	// test
-	// printf("%s q: %d node : %d pop : %d\n", find_path, qcnt, nodecnt, pop);
+	printf("%s q: %d file : %d pop : %d\n", find_path, qcnt, filecnt, pop);
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
 	if((cnt = scandir(find_path, &filelist, scandirFilter, alphasort)) == -1){
 		fprintf(stderr, "%s error, ERROR : %s\n", find_path, strerror(errno));
@@ -213,7 +214,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				fputs("|", dt);
 				fputs("\n", dt);
 			}
-			nodecnt++;
+			filecnt++;
 			free(mstr);
 			free(astr);
         }
@@ -246,7 +247,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	if(dt == NULL) fprintf(stderr, "fopen read error\n");
 	// 중복파일 리스트 추가
 	file2list(dt, list);
-	printf("file2list end...\n");
+	printf("file2list end..\n");
 	fclose(dt);
 
 	// todo : 파일 삭제
@@ -282,7 +283,7 @@ void file2list(FILE * dt, Node *list){
 		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
 		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
 		if(line == NULL) break; // 파일 끝인경우 종료
-
+		nodecnt++;
 		char *splitFile[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
 		char *ptr = strtok(buf, "|"); // | 기준으로 문자열 자르기
 		int idx = 0;
@@ -291,7 +292,7 @@ void file2list(FILE * dt, Node *list){
 			idx++;
 			ptr = strtok(NULL, "|");
 		}
-
+		fprintf(stdout, "now : %d end : %d\n", nodecnt, filecnt);
 		if(!strcmp(splitFile[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
 		int now_ftell = ftell(dt); // 돌아갈 위치 저장
 		bool is_first = true; // 기준 파일 추가해줘야 하는지
@@ -319,7 +320,7 @@ void file2list(FILE * dt, Node *list){
 			if(!strcmp(splitFile[5], cmp_split[5])){
 				if(is_first){
 					long long filesize = atoll(splitFile[1]);
-					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가		
+					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가
 					is_first = false;
 				}
 				// 리스트에 추가
@@ -890,6 +891,7 @@ void del_onlyList(Node *list){
 void sort_list(Node *list, int list_size){
     Node *cur = list->next; // head 다음
     for (int i = 0; i < list_size; i++){
+		fprintf(stdout, "sort now : %d\n", i);
         if(cur->next == NULL) break;
         for (int j = 0; j < list_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)
