@@ -190,11 +190,21 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			strcpy(mstr, get_time(st.st_mtime, mstr));
 			strcpy(astr, get_time(st.st_atime, mstr));
 
-			//todo : 리스트가 아닌 파일에 저장
+			// 파일에 저장
 			if(dt != NULL){
+				char size2str[BUF_SIZE];
+				sprintf(size2str, "%lld", (long long)filesize);
+				fputs("*", dt);
+				fputs("|", dt);
+				fputs(size2str, dt);
+				fputs("|", dt);
 				fputs(pathname, dt);
 				fputs("|", dt);
-				fputs(filehash, dt);
+				fputs(mstr, dt);
+				fputs("|", dt);
+				fputs(astr, dt);
+				fputs("|", dt);
+				fputs(filehash, dt);	
 				fputs("\n", dt);
 			}
 			// append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가
@@ -210,7 +220,6 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
 					continue;
 			}
-			//todo : 큐 동적배열아닌 파일로 할지 고민
 			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
 			qcnt++;
         }
@@ -228,25 +237,19 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 		ssu_find_md5(splitOper, pop_queue(q), start, list, q, dt, false);
 	}
 	printf("search end!!!!\n");
-	//test
+	fclose(dt); // w모드 종료
+	dt = fopen("writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
+	if(dt == NULL) fprintf(stderr, "fopen read error\n");
+	// 중복파일 리스트 추가
+	file2list(dt, list);
 	fclose(dt);
 
-	dt = fopen("writeReadData.txt", "r");
-	if(dt == NULL)
-		fprintf(stderr, "fopen read error\n");
-
-	char buf[BUF_SIZE + BUF_SIZE];
-	while (!feof(dt)) {
-		fgets(buf, BUF_SIZE + BUF_SIZE, dt);
-	}
-	fclose(dt);
+	// todo : 파일 삭제
 
 	struct timeval end; 
 	gettimeofday(&end, NULL); // 종료 시간 측정
 
-	// todo : 파일에서 중복파일 거르기
-	del_onlyList(list); // 중복파일 없는 인덱스 삭제
-	// todo : 파일 리스트에 넘긴 후 fclose 및 삭제
+	// del_onlyList(list); // 중복파일 없는 인덱스 삭제
 	int list_size = get_listLen(list);
 	if(list_size == 0){
 		if(realpath(find_path, dir_path) == NULL){
@@ -263,6 +266,63 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	print_list(list); // 리스트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
 	option(list); // 옵션 실행
+}
+
+// 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
+void file2list(FILE * dt, Node *list){
+	while (!feof(dt)){	
+		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
+		if(fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt) == NULL) break; // 파일 끝인경우 종료
+		
+		char *splitFile[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
+		char *ptr = strtok(buf, "|"); // | 기준으로 문자열 자르기
+		int idx = 0;
+		while (ptr != NULL){
+			if(idx < FILEDATA_SIZE) splitFile[idx] = ptr;
+			idx++;
+			ptr = strtok(NULL, "|");
+		}
+
+		// 이미 중복 체크 됐다면, 패스
+		if(!strcmp(splitFile[0], "**")) continue;
+
+		int now_ftell = ftell(dt); // 돌아갈 위치 저장
+		bool is_first = true; // 기준 파일 추가해줘야 하는지
+
+		// 중복 파일 있는지 체크
+		while (!feof(dt)){
+			int cmp_ftell = ftell(dt); // 체크 표시 위해 위치 저장
+			char cmp_buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
+			if(fgets(cmp_buf, BUF_SIZE * FILEDATA_SIZE, dt) == NULL) break; // 파일 끝인경우 종료
+			
+			char *cmp_split[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
+			char *cmp_ptr = strtok(cmp_buf, "|"); // | 기준으로 문자열 자르기
+			int cmp_idx = 0;
+			while (cmp_ptr != NULL){
+				if(cmp_idx < FILEDATA_SIZE) cmp_split[cmp_idx] = cmp_ptr;
+				cmp_idx++;
+				cmp_ptr = strtok(NULL, "|");
+			}
+
+			// 파일 크기 다르면 패스
+			if(strcmp(splitFile[1], cmp_split[1]))
+				continue;
+			// 해쉬값 같으면 리스트에 추가(처음 찾은 경우 기준 라인부터 추가)
+			if(!strcmp(splitFile[5], cmp_split[5])){
+				if(is_first){
+					long long filesize = atoll(splitFile[1]);
+					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가
+					is_first = false;
+				}
+				// 리스트에 추가
+				long long filesize = atoll(cmp_split[1]);
+				append_list(list, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5]); // 리스트에 추가
+				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
+				fputs("**", dt); // **으로 체크 표시
+			}
+		}
+		fseek(dt, now_ftell, SEEK_SET); // 다시 위치로 이동
+	}
 }
 
 void option(Node *list){
