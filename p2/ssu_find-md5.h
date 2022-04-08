@@ -14,7 +14,7 @@
 #endif
 
 #ifndef FILEDATA_SIZE
-    #define FILEDATA_SIZE 6
+    #define FILEDATA_SIZE 7 // 마지막은 \n
 #endif
 
 #ifndef COMMA_SIZE

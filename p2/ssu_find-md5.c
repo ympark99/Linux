@@ -204,7 +204,13 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				fputs("|", dt);
 				fputs(astr, dt);
 				fputs("|", dt);
-				fputs(filehash, dt);	
+				// 해쉬값 변환해서 저장
+				for (int i = 0; i< MD5_DIGEST_LENGTH; i++){
+					char ch[5];
+					sprintf(ch, "%02x", filehash[i]);
+					fputs(ch, dt);
+				}
+				fputs("|", dt);
 				fputs("\n", dt);
 			}
 			// append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가
@@ -242,6 +248,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	if(dt == NULL) fprintf(stderr, "fopen read error\n");
 	// 중복파일 리스트 추가
 	file2list(dt, list);
+	printf("file2list end...\n");
 	fclose(dt);
 
 	// todo : 파일 삭제
@@ -270,10 +277,14 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 
 // 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
 void file2list(FILE * dt, Node *list){
+	printf("file2list...\n");
+	char *line;
+	char *cmpline;
 	while (!feof(dt)){	
 		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
-		if(fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt) == NULL) break; // 파일 끝인경우 종료
-		
+		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
+		if(line == NULL) break; // 파일 끝인경우 종료
+
 		char *splitFile[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
 		char *ptr = strtok(buf, "|"); // | 기준으로 문자열 자르기
 		int idx = 0;
@@ -283,9 +294,7 @@ void file2list(FILE * dt, Node *list){
 			ptr = strtok(NULL, "|");
 		}
 
-		// 이미 중복 체크 됐다면, 패스
-		if(!strcmp(splitFile[0], "**")) continue;
-
+		if(!strcmp(splitFile[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
 		int now_ftell = ftell(dt); // 돌아갈 위치 저장
 		bool is_first = true; // 기준 파일 추가해줘야 하는지
 
@@ -293,7 +302,8 @@ void file2list(FILE * dt, Node *list){
 		while (!feof(dt)){
 			int cmp_ftell = ftell(dt); // 체크 표시 위해 위치 저장
 			char cmp_buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
-			if(fgets(cmp_buf, BUF_SIZE * FILEDATA_SIZE, dt) == NULL) break; // 파일 끝인경우 종료
+			cmpline = fgets(cmp_buf, BUF_SIZE * FILEDATA_SIZE, dt);
+			if(cmpline == NULL) break; // 파일 끝인경우 종료
 			
 			char *cmp_split[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
 			char *cmp_ptr = strtok(cmp_buf, "|"); // | 기준으로 문자열 자르기
@@ -303,7 +313,7 @@ void file2list(FILE * dt, Node *list){
 				cmp_idx++;
 				cmp_ptr = strtok(NULL, "|");
 			}
-
+			if(!strcmp(cmp_split[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
 			// 파일 크기 다르면 패스
 			if(strcmp(splitFile[1], cmp_split[1]))
 				continue;
@@ -311,14 +321,16 @@ void file2list(FILE * dt, Node *list){
 			if(!strcmp(splitFile[5], cmp_split[5])){
 				if(is_first){
 					long long filesize = atoll(splitFile[1]);
-					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가
+					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가		
 					is_first = false;
 				}
 				// 리스트에 추가
 				long long filesize = atoll(cmp_split[1]);
 				append_list(list, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5]); // 리스트에 추가
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
-				fputs("**", dt); // **으로 체크 표시
+				fputs("**|", dt); // **으로 체크 표시
+				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
+				// if(fgets(cmp_buf, BUF_SIZE * FILEDATA_SIZE, dt) == NULL) break; // 다시 한라인 읽기
 			}
 		}
 		fseek(dt, now_ftell, SEEK_SET); // 다시 위치로 이동
@@ -759,8 +771,7 @@ void print_list(Node *list){
 			if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
 
 			fprintf(stdout, "---- Identical files #%d (%s bytes - ", cnt, size2comma(cur->filesize));
-			for (int i = 0; i < MD5_DIGEST_LENGTH; i++)
-				fprintf(stdout, "%02x", cur->hash[i]);
+			fprintf(stdout, "%s", cur->hash);
 			fprintf(stdout, ") ----\n");
 			
 			strcpy(pre_hash, cur->hash);
