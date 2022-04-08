@@ -19,6 +19,7 @@
 int qcnt = 0;
 int filecnt = 0;
 int nodecnt = 0;
+int samecnt = 0;
 int pop = 0;
 
 int main(int argc, char *argv[OPER_LEN]){
@@ -321,11 +322,13 @@ void file2list(FILE * dt, Node *list){
 				if(is_first){
 					long long filesize = atoll(splitFile[1]);
 					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가
+					samecnt++;
 					is_first = false;
 				}
 				// 리스트에 추가
 				long long filesize = atoll(cmp_split[1]);
 				append_list(list, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5]); // 리스트에 추가
+				samecnt++;
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
 				fputs("**|", dt); // **으로 체크 표시
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
@@ -891,21 +894,22 @@ void del_onlyList(Node *list){
 void sort_list(Node *list, int list_size){
     Node *cur = list->next; // head 다음
     for (int i = 0; i < list_size; i++){
-		fprintf(stdout, "sort now : %d\n", i);
+		fprintf(stdout, "sort now : %d end : %d\n", i, samecnt);
         if(cur->next == NULL) break;
         for (int j = 0; j < list_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)
                 swap_node(cur, cur->next); //swap
 			// 파일크기 같고 && 해쉬값 다른 경우
-			else if((cur->filesize == cur->next->filesize) && strcmp(cur->hash, cur->next->hash)){
-				// 두 노드의 가장 먼저인 해쉬위치를 비교
-				int cur_front, next_front;
-				cur_front = search_hash(list, -1, cur->hash); // 본인을 찾아도 상관 없으므로 -1 넣어줌
-				next_front = search_hash(list, -1, cur->next->hash);
-				// 기준이 더 뒤에 있으면 스왑, 앞에 있으면 스왑x
-				if(cur_front > next_front)
-					swap_node(cur, cur->next);
-			}
+			// todo : 이거 안해도 될듯?
+			// else if((cur->filesize == cur->next->filesize) && strcmp(cur->hash, cur->next->hash)){
+			// 	// 두 노드의 가장 먼저인 해쉬위치를 비교
+			// 	int cur_front, next_front;
+			// 	cur_front = search_hash(list, -1, cur->hash); // 본인을 찾아도 상관 없으므로 -1 넣어줌
+			// 	next_front = search_hash(list, -1, cur->next->hash);
+			// 	// 기준이 더 뒤에 있으면 스왑, 앞에 있으면 스왑x
+			// 	if(cur_front > next_front)
+			// 		swap_node(cur, cur->next);
+			// }
             cur = cur->next;
         }
         cur = list->next;
