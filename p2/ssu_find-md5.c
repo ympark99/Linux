@@ -213,9 +213,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				fputs("|", dt);
 				fputs("\n", dt);
 			}
-			// append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가
-			nodecnt++;	
-
+			nodecnt++;
 			free(mstr);
 			free(astr);
         }
@@ -330,7 +328,6 @@ void file2list(FILE * dt, Node *list){
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
 				fputs("**|", dt); // **으로 체크 표시
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
-				// if(fgets(cmp_buf, BUF_SIZE * FILEDATA_SIZE, dt) == NULL) break; // 다시 한라인 읽기
 			}
 		}
 		fseek(dt, now_ftell, SEEK_SET); // 다시 위치로 이동
