@@ -76,7 +76,7 @@ void print_list(Node *list);
 void delete_list(Node *list);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
 void del_node(Node *list, int set_num, int idx_num);
-void del_onlyList(Node *list);
+void del_onlySet(Node *list, int set_num);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
 Node *get_recent(int set_idx, Node *cur);
