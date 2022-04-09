@@ -251,7 +251,9 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	printf("file2list end..\n");
 	fclose(dt);
 
-	// todo : 파일 삭제
+	// 데이터 파일 삭제
+	if(unlink("writeReadData.txt") == -1)
+		fprintf(stderr, "writeReadData delete error\n");
 
 	struct timeval end; 
 	gettimeofday(&end, NULL); // 종료 시간 측정
@@ -898,18 +900,7 @@ void sort_list(Node *list, int list_size){
         if(cur->next == NULL) break;
         for (int j = 0; j < list_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)
-                swap_node(cur, cur->next); //swap
-			// 파일크기 같고 && 해쉬값 다른 경우
-			// todo : 이거 안해도 될듯?
-			// else if((cur->filesize == cur->next->filesize) && strcmp(cur->hash, cur->next->hash)){
-			// 	// 두 노드의 가장 먼저인 해쉬위치를 비교
-			// 	int cur_front, next_front;
-			// 	cur_front = search_hash(list, -1, cur->hash); // 본인을 찾아도 상관 없으므로 -1 넣어줌
-			// 	next_front = search_hash(list, -1, cur->next->hash);
-			// 	// 기준이 더 뒤에 있으면 스왑, 앞에 있으면 스왑x
-			// 	if(cur_front > next_front)
-			// 		swap_node(cur, cur->next);
-			// }
+                swap_node(cur, cur->next); // swap
             cur = cur->next;
         }
         cur = list->next;

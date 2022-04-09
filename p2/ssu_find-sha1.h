@@ -13,6 +13,10 @@
     #define PATH_SIZE 4096
 #endif
 
+#ifndef FILEDATA_SIZE
+    #define FILEDATA_SIZE 7 // 마지막은 \n
+#endif
+
 #ifndef COMMA_SIZE
     #define COMMA_SIZE 64
 #endif
@@ -51,7 +55,8 @@ typedef struct Queue{
 	int cnt; // 큐 안의 노드 개수
 }queue;
 
-void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main);
+void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main);
+void file2list(FILE * dt, Node *list);
 void option(Node *list);
 void option_d(char *splitOper[OPTION_LEN], Node *list);
 void option_i(int set_idx, Node *list);

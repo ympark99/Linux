@@ -3,6 +3,7 @@
 #include <sys/stat.h> // stat 사용
 #include <sys/time.h>
 #include <unistd.h> // stat 사용
+#include <fcntl.h>
 #include <string.h> // string 관련 함수 사용
 #include <stdlib.h>
 #include <stdbool.h>
@@ -15,6 +16,11 @@
 #include "ssu_find-sha1.h"
 
 // todo : 최근 파일 비교 맞는지?
+int qcnt = 0;
+int filecnt = 0;
+int nodecnt = 0;
+int samecnt = 0;
+int pop = 0;
 
 int main(int argc, char *argv[OPER_LEN]){
 	// 큐 선언
@@ -24,18 +30,27 @@ int main(int argc, char *argv[OPER_LEN]){
 	Node *head = malloc(sizeof(Node));
 	head->next = NULL;
 
+	// 찾은 파일 저장해둘 fp선언
+	FILE *dt = fopen("writeReadData.txt", "w+");
+	if(dt == NULL){
+		fprintf(stderr, "data file create error\n");
+		exit(1);
+	}
+
 	struct timeval start;
 	gettimeofday(&start, NULL);
-	ssu_find_sha1(argv, argv[4], start, head, &q, true);
+	ssu_find_sha1(argv, argv[4], start, head, &q, dt, true);
 	delete_list(head); // 링크드리스트 제거	
 }
 
 // sha1 관련 함수 실행
-// 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐
-// 인자배열 : sha1, 파일 확장자, 최소크기, 최대크기, 디렉토리
-void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, bool from_main){
+// 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐, 파일 포인터, 메인에서 왔는지
+// 인자배열 : fsha1, 파일 확장자, 최소크기, 최대크기, 디렉토리
+void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
+	// test
+	printf("%s q: %d file : %d pop : %d\n", find_path, qcnt, filecnt, pop);
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
 	if((cnt = scandir(find_path, &filelist, scandirFilter, alphasort)) == -1){
 		fprintf(stderr, "%s error, ERROR : %s\n", find_path, strerror(errno));
@@ -58,7 +73,7 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 		// 합쳤던 이전 하위파일명 문자열 제거
 		char* ptr = strrchr(pathname, '/'); // 합쳤던 /하위파일명 포인터 연결
 		if(ptr)	strncpy(ptr, "", 1); // 합쳤던 문자열 제거
-		
+
 		// 현재 하위파일명 문자열 붙이기
 		strcat(pathname, "/");
 		strcat(pathname, filelist[i]->d_name); // 경로 + '/파일이름'
@@ -79,10 +94,13 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 
 			// 파일 정보 조회
 			struct stat st;
+
 			// 파일 정보 얻기
-			if(lstat(pathname, &st) == -1){
+			if(lstat(pathname, &st) == -1){			
+				// 파일 읽기 권한 없으면 패스
+				if(!st.st_mode & S_IRWXU) continue;
 				fprintf(stderr, "stat error : %s\n", strerror(errno));
-				continue;
+				continue;	
 			}
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
 
@@ -156,10 +174,12 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 				if(filesize > max_byte) continue;
 			}
 
+			// 파일 읽기 권한 없으면 패스
+			if(!st.st_mode & S_IRWXU) continue;
 			// sha1값 구하기
 			FILE *fp = fopen(pathname, "r");
 			if (fp == NULL){ // fopen 에러시 패스
-				fprintf(stderr, "fopen error : %s\n", strerror(errno));
+				// fprintf(stderr, "fopen error for %s : %s\n", pathname, strerror(errno));
 				continue;
 			}
 			unsigned char filehash[SHA_DIGEST_LENGTH]; // 해쉬값 저장할 문자열
@@ -172,9 +192,30 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 			strcpy(mstr, get_time(st.st_mtime, mstr));
 			strcpy(astr, get_time(st.st_atime, mstr));
 
-			//todo : 리스트가 아닌 파일에 저장
-			append_list(list, (long long)filesize, pathname, mstr, astr, filehash); // 리스트에 추가
-
+			// 파일에 저장
+			if(dt != NULL){
+				char size2str[BUF_SIZE];
+				sprintf(size2str, "%lld", (long long)filesize);
+				fputs("*", dt);
+				fputs("|", dt);
+				fputs(size2str, dt);
+				fputs("|", dt);
+				fputs(pathname, dt);
+				fputs("|", dt);
+				fputs(mstr, dt);
+				fputs("|", dt);
+				fputs(astr, dt);
+				fputs("|", dt);
+				// 해쉬값 변환해서 저장
+				for (int i = 0; i< SHA_DIGEST_LENGTH; i++){
+					char ch[5];
+					sprintf(ch, "%02x", filehash[i]);
+					fputs(ch, dt);
+				}
+				fputs("|", dt);
+				fputs("\n", dt);
+			}
+			filecnt++;
 			free(mstr);
 			free(astr);
         }
@@ -185,8 +226,8 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
 					continue;
 			}
-			//todo : 큐 동적배열아닌 파일로 할지 고민
 			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
+			qcnt++;
         }
     }
 
@@ -197,15 +238,27 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 
 	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
-	while (!isEmpty_queue(q))
-		ssu_find_sha1(splitOper, pop_queue(q), start, list, q, false);
+	while (!isEmpty_queue(q)){
+		qcnt--;
+		ssu_find_sha1(splitOper, pop_queue(q), start, list, q, dt, false);
+	}
+	printf("search end!!!!\n");
+	fclose(dt); // w모드 종료
+	dt = fopen("writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
+	if(dt == NULL) fprintf(stderr, "fopen read error\n");
+	// 중복파일 리스트 추가
+	file2list(dt, list);
+	printf("file2list end..\n");
+	fclose(dt);
+
+	// 데이터 파일 삭제
+	if(unlink("writeReadData.txt") == -1)
+		fprintf(stderr, "writeReadData delete error\n");
 
 	struct timeval end; 
 	gettimeofday(&end, NULL); // 종료 시간 측정
 
-	// todo : 파일에서 중복파일 거르기
-	del_onlyList(list); // 중복파일 없는 인덱스 삭제
-
+	// del_onlyList(list); // 중복파일 없는 인덱스 삭제
 	int list_size = get_listLen(list);
 	if(list_size == 0){
 		if(realpath(find_path, dir_path) == NULL){
@@ -222,6 +275,69 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 	print_list(list); // 리스트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
 	option(list); // 옵션 실행
+}
+
+// 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
+void file2list(FILE * dt, Node *list){
+	printf("file2list...\n");
+	char *line;
+	char *cmpline;
+	while (!feof(dt)){	
+		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
+		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
+		if(line == NULL) break; // 파일 끝인경우 종료
+		nodecnt++;
+		char *splitFile[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
+		char *ptr = strtok(buf, "|"); // | 기준으로 문자열 자르기
+		int idx = 0;
+		while (ptr != NULL){
+			if(idx < FILEDATA_SIZE) splitFile[idx] = ptr;
+			idx++;
+			ptr = strtok(NULL, "|");
+		}
+		fprintf(stdout, "now : %d end : %d\n", nodecnt, filecnt);
+		if(!strcmp(splitFile[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
+		int now_ftell = ftell(dt); // 돌아갈 위치 저장
+		bool is_first = true; // 기준 파일 추가해줘야 하는지
+
+		// 중복 파일 있는지 체크
+		while (!feof(dt)){
+			int cmp_ftell = ftell(dt); // 체크 표시 위해 위치 저장
+			char cmp_buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
+			cmpline = fgets(cmp_buf, BUF_SIZE * FILEDATA_SIZE, dt);
+			if(cmpline == NULL) break; // 파일 끝인경우 종료
+			
+			char *cmp_split[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
+			char *cmp_ptr = strtok(cmp_buf, "|"); // | 기준으로 문자열 자르기
+			int cmp_idx = 0;
+			while (cmp_ptr != NULL){
+				if(cmp_idx < FILEDATA_SIZE) cmp_split[cmp_idx] = cmp_ptr;
+				cmp_idx++;
+				cmp_ptr = strtok(NULL, "|");
+			}
+			if(!strcmp(cmp_split[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
+			// 파일 크기 다르면 패스
+			if(strcmp(splitFile[1], cmp_split[1]))
+				continue;
+			// 해쉬값 같으면 리스트에 추가(처음 찾은 경우 기준 라인부터 추가)
+			if(!strcmp(splitFile[5], cmp_split[5])){
+				if(is_first){
+					long long filesize = atoll(splitFile[1]);
+					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가
+					samecnt++;
+					is_first = false;
+				}
+				// 리스트에 추가
+				long long filesize = atoll(cmp_split[1]);
+				append_list(list, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5]); // 리스트에 추가
+				samecnt++;
+				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
+				fputs("**|", dt); // **으로 체크 표시
+				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
+			}
+		}
+		fseek(dt, now_ftell, SEEK_SET); // 다시 위치로 이동
+	}
 }
 
 void option(Node *list){
@@ -472,7 +588,14 @@ void option_t(int set_idx, Node *list){
 				}
 				// todo : 같은 이름의 파일이 존재할 경우
 				// else{
-				// 	fprintf(stdout, "same name file\n");
+				// 	// fprintf(stdout, "same name file\n");
+				// 	// int num = 2;
+				// 	// char str2[PATH_SIZE];
+				// 	// // 다른 파일로 이름 바꿔주기(1, 2, ... 뒤에 붙이기)
+				// 	// do{
+				// 	// 	sprintf(str2, "%d%s", num, str);
+				// 	// 	num++;
+				// 	// } while(link(cur->path, str2) == -1 && errno == EEXIST);
 				// }
 			}
 			free(str);
@@ -651,8 +774,7 @@ void print_list(Node *list){
 			if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
 
 			fprintf(stdout, "---- Identical files #%d (%s bytes - ", cnt, size2comma(cur->filesize));
-			for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
-				fprintf(stdout, "%02x", cur->hash[i]);
+			fprintf(stdout, "%s", cur->hash);
 			fprintf(stdout, ") ----\n");
 			
 			strcpy(pre_hash, cur->hash);
@@ -774,20 +896,11 @@ void del_onlyList(Node *list){
 void sort_list(Node *list, int list_size){
     Node *cur = list->next; // head 다음
     for (int i = 0; i < list_size; i++){
+		fprintf(stdout, "sort now : %d end : %d\n", i, samecnt);
         if(cur->next == NULL) break;
         for (int j = 0; j < list_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)
-                swap_node(cur, cur->next); //swap
-			// 파일크기 같고 && 해쉬값 다른 경우
-			else if((cur->filesize == cur->next->filesize) && strcmp(cur->hash, cur->next->hash)){
-				// 두 노드의 가장 먼저인 해쉬위치를 비교
-				int cur_front, next_front;
-				cur_front = search_hash(list, -1, cur->hash); // 본인을 찾아도 상관 없으므로 -1 넣어줌
-				next_front = search_hash(list, -1, cur->next->hash);
-				// 기준이 더 뒤에 있으면 스왑, 앞에 있으면 스왑x
-				if(cur_front > next_front)
-					swap_node(cur, cur->next);
-			}
+                swap_node(cur, cur->next); // swap
             cur = cur->next;
         }
         cur = list->next;
@@ -878,5 +991,6 @@ char *pop_queue(queue *q){
     q->front = ptr->next;  // ptr의 다음 노드를 front로 설정
     free(ptr);
     q->cnt--;
+	pop++;
     return data;
 }
