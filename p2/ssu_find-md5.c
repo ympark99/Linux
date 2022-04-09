@@ -196,15 +196,15 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			if(dt != NULL){
 				char size2str[BUF_SIZE];
 				sprintf(size2str, "%lld", (long long)filesize);
-				fputs("*", dt);
+				fputs("*", dt); // 체크 여부
 				fputs("|", dt);
-				fputs(size2str, dt);
+				fputs(size2str, dt); // 파일 크기
 				fputs("|", dt);
-				fputs(pathname, dt);
+				fputs(pathname, dt); // 파일 절대경로
 				fputs("|", dt);
-				fputs(mstr, dt);
+				fputs(mstr, dt); // mtime
 				fputs("|", dt);
-				fputs(astr, dt);
+				fputs(astr, dt); // atime
 				fputs("|", dt);
 				// 해쉬값 변환해서 저장
 				for (int i = 0; i< MD5_DIGEST_LENGTH; i++){
@@ -438,7 +438,7 @@ void option_d(char *splitOper[OPTION_LEN], Node *list){
 	int set_num = cur->set_num; // 삭제할 세트 번호
 	int idx_num = cur->idx_num; // 삭제할 인덱스 번호
 
-	//파일 삭제
+	// 파일 삭제
 	if(unlink(cur->path) == -1)
 		fprintf(stderr, "%s delete error", cur->path);
 	else{

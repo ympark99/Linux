@@ -196,15 +196,15 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 			if(dt != NULL){
 				char size2str[BUF_SIZE];
 				sprintf(size2str, "%lld", (long long)filesize);
-				fputs("*", dt);
+				fputs("*", dt); // 체크 여부
 				fputs("|", dt);
-				fputs(size2str, dt);
+				fputs(size2str, dt); // 파일 크기
 				fputs("|", dt);
-				fputs(pathname, dt);
+				fputs(pathname, dt); // 파일 절대경로
 				fputs("|", dt);
-				fputs(mstr, dt);
+				fputs(mstr, dt); // mtime
 				fputs("|", dt);
-				fputs(astr, dt);
+				fputs(astr, dt); // atime
 				fputs("|", dt);
 				// 해쉬값 변환해서 저장
 				for (int i = 0; i< SHA_DIGEST_LENGTH; i++){
@@ -258,7 +258,6 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 	struct timeval end; 
 	gettimeofday(&end, NULL); // 종료 시간 측정
 
-	// del_onlyList(list); // 중복파일 없는 인덱스 삭제
 	int list_size = get_listLen(list);
 	if(list_size == 0){
 		if(realpath(find_path, dir_path) == NULL){
@@ -439,13 +438,13 @@ void option_d(char *splitOper[OPTION_LEN], Node *list){
 	int set_num = cur->set_num; // 삭제할 세트 번호
 	int idx_num = cur->idx_num; // 삭제할 인덱스 번호
 
-	//파일 삭제
+	// 파일 삭제
 	if(unlink(cur->path) == -1)
 		fprintf(stderr, "%s delete error", cur->path);
 	else{
 		fprintf(stdout, "\"%s\" has been deleted in #%d\n\n", cur->path, set_num);
 		del_node(list, set_num, idx_num); // 해당 노드 연결 리스트에서 삭제
-		del_onlyList(list); // 하나만 남은 경우 제거
+		del_onlySet(list, set_num); // 하나만 남은 경우 제거
 		print_list(list); // 프린트, 넘버링(인덱스 재배치)
 		if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 	}
@@ -503,7 +502,7 @@ void option_i(int set_idx, Node *list){
 		if(cur == NULL) break; // 마지막인 경우 종료
 	}
 	fprintf(stdout, "\n");
-	del_onlyList(list); // 하나만 남은 경우 제거
+	del_onlySet(list, set_idx); // 하나만 남은 경우 제거
 	print_list(list); // 프린트
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
@@ -546,7 +545,7 @@ void option_f(int set_idx, Node *list){
 		if(cur == NULL) break; // 마지막인 경우 종료
 	}
 	fprintf(stdout, "Left file in #%d : %s (%-15s)\n\n", recent->set_num, recent->path, recent->mtime);
-	del_onlyList(list); // 하나만 남은 경우 제거
+	del_onlySet(list, set_idx); // 하나만 남은 경우 제거
 	print_list(list); // 프린트
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
@@ -617,7 +616,7 @@ void option_t(int set_idx, Node *list){
 		if(cur == NULL) break; // 마지막인 경우 종료
 	}
 	fprintf(stdout, "All files in #%d have moved to Trash except \"%s\" (%-15s)\n\n", recent->set_num, recent->path, recent->mtime);
-	del_onlyList(list); // 하나만 남은 경우 제거
+	del_onlySet(list, set_idx); // 하나만 남은 경우 제거
 	print_list(list); // 프린트
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
@@ -857,38 +856,33 @@ void del_node(Node *list, int set_num, int idx_num){
     }
 }
 
-// 같은파일 있는지 찾고 없으면 삭제
-void del_onlyList(Node *list){
+// 삭제 작업후 세트에 인덱스 하나만 남았으면 삭제
+void del_onlySet(Node *list, int set_num){
     Node *cur = list->next; // head 다음
 	if(cur == NULL) return; // 빈 리스트일 경우 리턴	
 
-	Node *pre = list;
-	int idx = 1; // 현재 cur 인덱스
-	int cmp_idx; // 비교할 인덱스
+	Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
 
-    while(cur != NULL){
-		cmp_idx = search_hash(list, idx, cur->hash); // 본인 제외 같은 해쉬 존재하는지 탐색
-		// 같은 해시 값 없으면
-        if(cmp_idx == -1){
-			// 해당 인덱스 삭제
-			if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
-				pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
-				free(cur);
-				cur = pre->next;
-			}
-			else{ // 마지막 인덱스 삭제할 경우
-				pre->next = NULL;
-				cur->next = NULL;
-				free(cur);
-				cur = NULL;
-			}
-		}
-		else{
-			pre = cur;
-			idx++;
-			cur = cur->next;
-		}
-    }
+	// 세트 같을때까지 탐색
+	while(cur->set_num != set_num){
+		// 세트가 완전히 삭제된경우
+		if(cur->next == NULL) return;
+		pre = cur;
+		cur = cur->next;
+	}
+
+	// 중복 없고 마지막 파일인 경우 삭제
+	if(cur->next == NULL){
+		pre->next = NULL;
+		cur->next = NULL;
+		free(cur);
+		cur = NULL;
+	}
+	else if(strcmp(cur->hash, cur->next->hash)){ // 중복 없는 경우 삭제
+		pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
+		free(cur);
+		cur = pre->next;
+	}
 }
 
 // 리스트 버블정렬
