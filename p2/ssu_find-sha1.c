@@ -103,6 +103,7 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 				continue;	
 			}
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
+			if(filesize == 0) continue; // 0바이트인경우 패스
 
 			// 최소 크기 이상인지 확인
 			if(strcmp(splitOper[2], "~")){

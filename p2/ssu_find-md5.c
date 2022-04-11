@@ -103,6 +103,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				continue;	
 			}
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
+			if(filesize == 0) continue; // 0바이트인경우 패스
 
 			// 최소 크기 이상인지 확인
 			if(strcmp(splitOper[2], "~")){
@@ -210,6 +211,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				for (int i = 0; i< MD5_DIGEST_LENGTH; i++){
 					char ch[5];
 					sprintf(ch, "%02x", filehash[i]);
+					// str + (i * 2);
 					fputs(ch, dt);
 				}
 				fputs("|", dt);
