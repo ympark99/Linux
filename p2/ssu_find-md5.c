@@ -183,8 +183,9 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				// fprintf(stderr, "fopen error for %s : %s\n", pathname, strerror(errno));
 				continue;
 			}
-			unsigned char filehash[MD5_DIGEST_LENGTH]; // 해쉬값 저장할 문자열
+			unsigned char filehash[MD5_DIGEST_LENGTH * 2 + 1]; // 해쉬값 저장할 문자열
 			strcpy(filehash, get_md5(fp)); // 해쉬값 구해서 저장
+
 			fclose(fp);
 
 			// 동적할당 후 시간 포맷 구하기
@@ -207,13 +208,7 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				fputs("|", dt);
 				fputs(astr, dt); // atime
 				fputs("|", dt);
-				// 해쉬값 변환해서 저장
-				for (int i = 0; i< MD5_DIGEST_LENGTH; i++){
-					char ch[5];
-					sprintf(ch, "%02x", filehash[i]);
-					// str + (i * 2);
-					fputs(ch, dt);
-				}
+				fputs(filehash, dt);
 				fputs("|", dt);
 				fputs("\n", dt);
 			}
@@ -669,10 +664,13 @@ char *get_md5(FILE *fp){
 	MD5_Init(&c);
 	int i = read(fd, buf, BUF_MAX);
 	MD5_Update(&c, buf, (unsigned long)i);
-	
-	MD5_Final(&(md[0]),&c);
 
-	return md;
+	MD5_Final(md,&c);
+
+	static char md5string[MD5_DIGEST_LENGTH * 2 + 1];
+	for(int i = 0; i < MD5_DIGEST_LENGTH; ++i)
+		sprintf(&md5string[i*2], "%02x", (unsigned int)md[i]);
+	return md5string;
 }
 
 // 시간 정보 포맷에 맞게 변환

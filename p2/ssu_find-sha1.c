@@ -100,7 +100,7 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 				// 파일 읽기 권한 없으면 패스
 				if(!st.st_mode & S_IRWXU) continue;
 				fprintf(stderr, "stat error : %s\n", strerror(errno));
-				continue;	
+				continue;
 			}
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
 			if(filesize == 0) continue; // 0바이트인경우 패스
@@ -183,7 +183,7 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 				// fprintf(stderr, "fopen error for %s : %s\n", pathname, strerror(errno));
 				continue;
 			}
-			unsigned char filehash[SHA_DIGEST_LENGTH]; // 해쉬값 저장할 문자열
+			unsigned char filehash[SHA_DIGEST_LENGTH * 2 + 1]; // 해쉬값 저장할 문자열
 			strcpy(filehash, get_sha1(fp)); // 해쉬값 구해서 저장
 			fclose(fp);
 
@@ -208,11 +208,7 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 				fputs(astr, dt); // atime
 				fputs("|", dt);
 				// 해쉬값 변환해서 저장
-				for (int i = 0; i< SHA_DIGEST_LENGTH; i++){
-					char ch[5];
-					sprintf(ch, "%02x", filehash[i]);
-					fputs(ch, dt);
-				}
+				fputs(filehash, dt);
 				fputs("|", dt);
 				fputs("\n", dt);
 			}
@@ -669,9 +665,12 @@ char *get_sha1(FILE *fp){
 	int i = read(fd, buf, BUF_MAX);
 	SHA1_Update(&c, buf, (unsigned long)i);
 	
-	SHA1_Final(&(md[0]),&c);
+	SHA1_Final(md,&c);
 
-	return md;
+	static char sha1string[SHA_DIGEST_LENGTH * 2 + 1];
+	for(int i = 0; i < SHA_DIGEST_LENGTH; ++i)
+		sprintf(&sha1string[i*2], "%02x", (unsigned int)md[i]);
+	return sha1string;
 }
 
 // 시간 정보 포맷에 맞게 변환
