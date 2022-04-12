@@ -582,17 +582,19 @@ void option_t(int set_idx, Node *list){
 					fprintf(stderr, "link error\n");
 					exit(1);
 				}
-				// todo : 같은 이름의 파일이 존재할 경우
-				// else{
-				// 	// fprintf(stdout, "same name file\n");
-				// 	// int num = 2;
-				// 	// char str2[PATH_SIZE];
-				// 	// // 다른 파일로 이름 바꿔주기(1, 2, ... 뒤에 붙이기)
-				// 	// do{
-				// 	// 	sprintf(str2, "%d%s", num, str);
-				// 	// 	num++;
-				// 	// } while(link(cur->path, str2) == -1 && errno == EEXIST);
-				// }
+				// 같은 이름의 파일이 존재할 경우 -> cp1, cp2, ... 이름붙여 휴지통으로 이동
+				else{
+					int cpnum = 1;
+					while(1){
+						char str2[PATH_SIZE];
+						if(strrchr(cur->path, '.') == NULL) // 확장자 없는 파일인경우
+							sprintf(str2, "trash/cp%d", cpnum);
+						else 
+							sprintf(str2, "trash/cp%d%s", cpnum, strrchr(cur->path, '.'));
+						cpnum++;
+						if(!(link(cur->path, str2) == -1 && errno == EEXIST)) break; // 중복파일 있으면 다음 숫자 이름붙임
+					}
+				}
 			}
 			free(str);
 
