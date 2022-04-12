@@ -391,6 +391,9 @@ void option(Node *list){
 		else if(goNext && !strcmp(splitOper[1], "t")){ // t옵션
 			option_t(atoi(splitOper[0]), list);
 		}
+		else if(goNext && !strcmp(splitOper[1], "a")){ // 추가기능 : a옵션
+			option_a(atoi(splitOper[0]), list);
+		}		
 		else{
 			fprintf(stderr, "올바른 옵션을 입력해주세요\n");
 		}
@@ -620,6 +623,36 @@ void option_t(int set_idx, Node *list){
 	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
+// 추가기능 : a옵션
+// [LIST_IDX] a : 세트의 해당번째 인덱스 모두 삭제
+// 해당 인덱스 없을 경우 삭제 x
+void option_a(int list_idx, Node *list){
+	Node *cur = list->next;
+	Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
+
+	// 세트 같을때까지 탐색
+	while (cur != NULL){
+		if(cur->idx_num == list_idx){ // 인덱스 같으면 삭제
+			//파일 삭제
+			if(unlink(cur->path) == -1){
+				fprintf(stderr, "%s delete error", cur->path);
+				return;
+			}
+			else{
+				del_node(list, cur->set_num, cur->idx_num); // 노드 삭제
+				cur = pre->next;
+			}
+		}
+		else{
+			pre = cur;
+			cur = cur->next;
+		}
+	}
+	del_onlyList(list); // 하나 남은 경우 삭제
+	print_list(list); // 프린트
+	if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
+}
+
 // scandir 필터(. 과 .. 제거)
 int scandirFilter(const struct dirent *info){
 	if(strcmp(info->d_name, ".") == 0 || strcmp(info->d_name, "..") == 0){
@@ -780,10 +813,9 @@ void print_list(Node *list){
 			
 			strcpy(pre_hash, cur->hash);
 		}
-
 		cur->set_num = cnt; // 현재 세트 번호 저장
 		cur->idx_num = small_cnt; // 세트 내 인덱스 번호 저장
-			
+
 		fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", small_cnt, cur->path, cur->mtime, cur->atime);
 		small_cnt++;
 
@@ -806,23 +838,6 @@ void delete_list(Node *list){
 void init_queue(queue *q){
     q->front = q->rear = NULL; 
     q->cnt = 0;
-}
-
-// 해쉬 일치할경우 인덱스 반환
-int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]){
-    Node *cur = list->next; // head 다음
-    int idx = 1;	
-
-    while(cur != NULL){
-		// 본인이 아닌 같은 해쉬 찾은 경우
-        if((idx != cmp_idx) && !strcmp(cur->hash, hash))
-			return idx;
-        
-        cur = cur->next;
-        idx++;
-    }
-	// 못 찾은 경우
-    return -1;
 }
 
 // 특정 파일 삭제
@@ -885,6 +900,57 @@ void del_onlySet(Node *list, int set_num){
 		free(cur);
 		cur = pre->next;
 	}
+}
+
+// 같은파일 있는지 찾고 없으면 삭제
+void del_onlyList(Node *list){
+    Node *cur = list->next; // head 다음
+	if(cur == NULL) return; // 빈 리스트일 경우 리턴	
+
+	Node *pre = list;
+	int idx = 1; // 현재 cur 인덱스
+	int cmp_idx; // 비교할 인덱스
+
+    while(cur != NULL){
+		cmp_idx = search_hash(list, idx, cur->hash); // 본인 제외 같은 해쉬 존재하는지 탐색
+		// 같은 해시 값 없으면
+        if(cmp_idx == -1){
+			// 해당 인덱스 삭제
+			if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
+				pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
+				free(cur);
+				cur = pre->next;
+			}
+			else{ // 마지막 인덱스 삭제할 경우
+				pre->next = NULL;
+				cur->next = NULL;
+				free(cur);
+				cur = NULL;
+			}
+		}
+		else{
+			pre = cur;
+			idx++;
+			cur = cur->next;
+		}
+    }
+}
+
+// 해쉬 일치할경우 인덱스 반환
+int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]){
+    Node *cur = list->next; // head 다음
+    int idx = 1;	
+
+    while(cur != NULL){
+		// 본인이 아닌 같은 해쉬 찾은 경우
+        if((idx != cmp_idx) && !strcmp(cur->hash, hash))
+			return idx;
+        
+        cur = cur->next;
+        idx++;
+    }
+	// 못 찾은 경우
+    return -1;
 }
 
 // 리스트 버블정렬

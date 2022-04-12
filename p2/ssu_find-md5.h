@@ -62,6 +62,7 @@ void option_d(char *splitOper[OPTION_LEN], Node *list);
 void option_i(int set_idx, Node *list);
 void option_f(int set_idx, Node *list);
 void option_t(int set_idx, Node *list);
+void option_a(int list_idx, Node *list); // 추가기능
 
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
@@ -74,9 +75,10 @@ const char *size2comma(long long n);
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);
 void print_list(Node *list);
 void delete_list(Node *list);
-int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
 void del_node(Node *list, int set_num, int idx_num);
 void del_onlySet(Node *list, int set_num);
+void del_onlyList(Node *list);
+int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
 Node *get_recent(int set_idx, Node *cur);
