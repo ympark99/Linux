@@ -14,6 +14,7 @@ void ssu_help(){
 	printf("         i : ask for confirmation before delete\n");
 	printf("         f : force delete except the recently modified file\n");
 	printf("         t : force move to Trash except the recently modified file\n");
+	printf("   [IDX] a : delete the [IDX] file for all sets\n");
 	printf("  > help\n");
 	printf("  > exit\n\n");
 }
