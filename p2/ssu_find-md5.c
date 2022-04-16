@@ -718,7 +718,7 @@ char* get_time(time_t stime, char * str){
 	return str;
 }
 
-// 프로그램 종료
+// 탐색 소요 시간 계산
 void get_searchtime(struct timeval start, struct timeval end){
 	end.tv_sec -= start.tv_sec; // 초 부분 계산
 
@@ -737,12 +737,13 @@ const char *size2comma(long long n){
 	int idx, len, cidx = 0, mod; 
 	
 	sprintf(str, "%lld", n); 
-	len = strlen(str); mod = len % 3; 
+	len = strlen(str); 
+	mod = len % 3; 
 	for(idx = 0; idx < len; idx++){
 		if(idx != 0 && (idx) % 3 == mod){ 
-			comma_str[cidx++] = ','; 
+			comma_str[cidx++] = ',';
 		} 
-	comma_str[cidx++] = str[idx]; 
+		comma_str[cidx++] = str[idx]; 
 	} 
 	comma_str[cidx] = 0x00; 
 	return comma_str; 
@@ -781,7 +782,7 @@ void append_list(Node *list, long long filesize, char *path, char *mtime, char *
 	}
 }
 
-// 노드 크기 구하기
+// 리스트 크기 구하기
 int get_listLen(Node *list){
     int cnt = -1; // head 제외
     Node *cur = list;
