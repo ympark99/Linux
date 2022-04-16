@@ -4,7 +4,6 @@
 
 int main(){
 	ssu_sdup();
-
 	fprintf(stdout, "Prompt End\n");
 	exit(0);
 }

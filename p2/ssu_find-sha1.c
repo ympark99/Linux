@@ -41,6 +41,7 @@ int main(int argc, char *argv[OPER_LEN]){
 	gettimeofday(&start, NULL);
 	ssu_find_sha1(argv, argv[4], start, head, &q, dt, true);
 	delete_list(head); // 링크드리스트 제거	
+	exit(0);
 }
 
 // sha1 관련 함수 실행
@@ -109,7 +110,7 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 			if(strcmp(splitOper[2], "~")){
 				long double min_byte = 0; // 비교할 최소 크기(byte)
 				char *pos = NULL;
-				min_byte = strtod(splitOper[2], &pos); // 실수, 문자열 분리
+				min_byte = strtold(splitOper[2], &pos); // 실수, 문자열 분리
 				// 수만 입력한 경우
 				if(!strcmp(pos, "")){
 					double integer, fraction;
@@ -183,8 +184,8 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 				// fprintf(stderr, "fopen error for %s : %s\n", pathname, strerror(errno));
 				continue;
 			}
-			unsigned char filehash[SHA_DIGEST_LENGTH * 2 + 1]; // 해쉬값 저장할 문자열
-			strcpy(filehash, get_sha1(fp)); // 해쉬값 구해서 저장
+			unsigned char filehash[SHA_DIGEST_LENGTH * 2 + 1]; // 해시값 저장할 문자열
+			strcpy(filehash, get_sha1(fp)); // 해시값 구해서 저장
 
 			fclose(fp);
 
@@ -315,7 +316,7 @@ void file2list(FILE * dt, Node *list){
 			// 파일 크기 다르면 패스
 			if(strcmp(splitFile[1], cmp_split[1]))
 				continue;
-			// 해쉬값 같으면 리스트에 추가(처음 찾은 경우 기준 라인부터 추가)
+			// 해시값 같으면 리스트에 추가(처음 찾은 경우 기준 라인부터 추가)
 			if(!strcmp(splitFile[5], cmp_split[5])){
 				if(is_first){
 					long long filesize = atoll(splitFile[1]);
@@ -800,7 +801,7 @@ void print_list(Node *list){
 	int small_cnt = 1;
 	unsigned char pre_hash[BUF_SIZE] = "";
 	while (cur != NULL){
-		// 해쉬값이 다르면 다른 리스트출력
+		// 해시값이 다르면 다른 리스트출력
 		if(strcmp(pre_hash, cur->hash)){
 			cnt++;
 			small_cnt = 1;

@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "ssu_help.h"
 
 int main(int argc, char *argv[]){
 	ssu_help();
+	exit(0);
 }
 
 void ssu_help(){
