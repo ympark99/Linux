@@ -892,7 +892,7 @@ void del_onlyList(Node *list){
 	int cmp_idx; // 비교할 인덱스
 
     while(cur != NULL){
-		cmp_idx = search_hash(list, idx, cur->hash); // 본인 제외 같은 해쉬 존재하는지 탐색
+		cmp_idx = search_hash(list, idx, cur->hash); // 본인 제외 같은 해시 존재하는지 탐색
 		// 같은 해시 값 없으면
         if(cmp_idx == -1){
 			// 해당 인덱스 삭제
@@ -916,13 +916,13 @@ void del_onlyList(Node *list){
     }
 }
 
-// 해쉬 일치할경우 인덱스 반환
+// 해시 일치할경우 인덱스 반환
 int search_hash(Node *list, int cmp_idx, unsigned char hash[SHA_DIGEST_LENGTH]){
     Node *cur = list->next; // head 다음
     int idx = 1;	
 
     while(cur != NULL){
-		// 본인이 아닌 같은 해쉬 찾은 경우
+		// 본인이 아닌 같은 해시 찾은 경우
         if((idx != cmp_idx) && !strcmp(cur->hash, hash))
 			return idx;
         
