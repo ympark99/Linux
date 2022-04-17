@@ -15,13 +15,6 @@
 #include <errno.h>
 #include "ssu_find-md5.h"
 
-// todo : 최근 파일 비교 맞는지?
-int qcnt = 0;
-int filecnt = 0;
-int nodecnt = 0;
-int samecnt = 0;
-int pop = 0;
-
 int main(int argc, char *argv[OPER_LEN]){
 	// 큐 선언
 	queue q;
@@ -50,8 +43,6 @@ int main(int argc, char *argv[OPER_LEN]){
 void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
-	// test
-	printf("%s q: %d file : %d pop : %d\n", find_path, qcnt, filecnt, pop);
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
 	if((cnt = scandir(find_path, &filelist, scandirFilter, alphasort)) == -1){
 		fprintf(stderr, "%s error, ERROR : %s\n", find_path, strerror(errno));
@@ -95,7 +86,6 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 
 			// 파일 정보 조회
 			struct stat st;
-
 			// 파일 정보 얻기
 			if(lstat(pathname, &st) == -1){			
 				// 파일 읽기 권한 없으면 패스
@@ -180,10 +170,8 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 			if(!st.st_mode & S_IRWXU) continue;
 			// md5값 구하기
 			FILE *fp = fopen(pathname, "r");
-			if (fp == NULL){ // fopen 에러시 패스
-				// fprintf(stderr, "fopen error for %s : %s\n", pathname, strerror(errno));
-				continue;
-			}
+			if (fp == NULL) continue; // fopen 에러시 패스
+
 			unsigned char filehash[MD5_DIGEST_LENGTH * 2 + 1]; // 해시값 저장할 문자열
 			strcpy(filehash, get_md5(fp)); // 해시값 구해서 저장
 
@@ -213,7 +201,6 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 				fputs("|", dt);
 				fputs("\n", dt);
 			}
-			filecnt++;
 			free(mstr);
 			free(astr);
         }
@@ -225,7 +212,6 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 					continue;
 			}
 			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
-			qcnt++;
         }
     }
 
@@ -237,16 +223,13 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
-		qcnt--;
 		ssu_find_md5(splitOper, pop_queue(q), start, list, q, dt, false);
 	}
-	printf("search end!!!!\n");
 	fclose(dt); // w모드 종료
 	dt = fopen("writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
 	if(dt == NULL) fprintf(stderr, "fopen read error\n");
 	// 중복파일 리스트 추가
 	file2list(dt, list);
-	printf("file2list end..\n");
 	fclose(dt);
 
 	// 데이터 파일 삭제
@@ -276,14 +259,12 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 
 // 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
 void file2list(FILE * dt, Node *list){
-	printf("file2list...\n");
 	char *line;
 	char *cmpline;
 	while (!feof(dt)){	
 		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
 		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
 		if(line == NULL) break; // 파일 끝인경우 종료
-		nodecnt++;
 		char *splitFile[FILEDATA_SIZE] = {NULL, }; // 파일 크기, 파일 경로, hash 분리
 		char *ptr = strtok(buf, "|"); // | 기준으로 문자열 자르기
 		int idx = 0;
@@ -292,7 +273,6 @@ void file2list(FILE * dt, Node *list){
 			idx++;
 			ptr = strtok(NULL, "|");
 		}
-		fprintf(stdout, "now : %d end : %d\n", nodecnt, filecnt);
 		if(!strcmp(splitFile[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
 		int now_ftell = ftell(dt); // 돌아갈 위치 저장
 		bool is_first = true; // 기준 파일 추가해줘야 하는지
@@ -321,13 +301,11 @@ void file2list(FILE * dt, Node *list){
 				if(is_first){
 					long long filesize = atoll(splitFile[1]);
 					append_list(list, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 리스트에 추가
-					samecnt++;
 					is_first = false;
 				}
 				// 리스트에 추가
 				long long filesize = atoll(cmp_split[1]);
 				append_list(list, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5]); // 리스트에 추가
-				samecnt++;
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
 				fputs("**|", dt); // **으로 체크 표시
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
@@ -960,7 +938,6 @@ int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]){
 void sort_list(Node *list, int list_size){
     Node *cur = list->next; // head 다음
     for (int i = 0; i < list_size; i++){
-		fprintf(stdout, "sort now : %d end : %d\n", i, samecnt);
         if(cur->next == NULL) break;
         for (int j = 0; j < list_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)
@@ -1055,6 +1032,5 @@ char *pop_queue(queue *q){
     q->front = ptr->next;  // ptr의 다음 노드를 front로 설정
     free(ptr);
     q->cnt--;
-	pop++;
     return data;
 }
