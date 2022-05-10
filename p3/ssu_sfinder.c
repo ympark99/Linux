@@ -15,6 +15,8 @@
 #include "ssu_sfinder.h"
 #include "ssu_help.h"
 
+// todo : fork 제거 필요
+
 int main(){
 	while (1){
 		char *oper = malloc(sizeof(char) * BUF_SIZE);
