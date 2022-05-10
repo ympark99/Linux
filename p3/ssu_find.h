@@ -1,5 +1,5 @@
-#ifndef SSU_FIND_MD5_H
-#define SSU_FIND_MD5_H
+#ifndef SSU_FIND_H
+#define SSU_FIND_H
 
 #ifndef BUF_MAX
     #define BUF_MAX 1024 * 16
@@ -30,6 +30,7 @@
 #endif
 
 #include <openssl/md5.h>
+#include <openssl/sha.h>
 
 // 동일 파일 링크드리스트
 typedef struct Nodes{
@@ -55,7 +56,8 @@ typedef struct Queue{
 	int cnt; // 큐 안의 노드 개수
 }queue;
 
-void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main);
+int digest_len;
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main);
 void file2list(FILE * dt, Node *list);
 void option(Node *list);
 void option_d(char *splitOper[OPTION_LEN], Node *list);
@@ -67,18 +69,19 @@ void option_a(int list_idx, Node *list); // 추가기능
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
+char *get_sha1(FILE *fp);
 char* get_time(time_t stime, char * str);
 void get_searchtime(struct timeval start, struct timeval end);
 int get_listLen(Node *list);
 const char *size2comma(long long n);
 
-void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[MD5_DIGEST_LENGTH]);
+void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]);
 void print_list(Node *list);
 void delete_list(Node *list);
 void del_node(Node *list, int set_num, int idx_num);
 void del_onlySet(Node *list, int set_num);
 void del_onlyList(Node *list);
-int search_hash(Node *list, int cmp_idx, unsigned char hash[MD5_DIGEST_LENGTH]);
+int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
 Node *get_recent(int set_idx, Node *cur);

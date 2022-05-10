@@ -10,37 +10,17 @@
 #include <time.h>
 #include <dirent.h> // scandir 사용
 #include <math.h> // modf 사용
+#include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <sys/time.h> // gettimeofday 사용
 #include <errno.h>
-#include "ssu_find-sha1.h"
+#include "ssu_find.h"
 
-int main(int argc, char *argv[OPER_LEN]){
-	// 큐 선언
-	queue q;
-	init_queue(&q);
-	// 링크드리스트 head 선언
-	Node *head = malloc(sizeof(Node));
-	head->next = NULL;
 
-	// 찾은 파일 저장해둘 fp선언
-	FILE *dt = fopen("writeReadData.txt", "w+");
-	if(dt == NULL){
-		fprintf(stderr, "data file create error\n");
-		exit(1);
-	}
+// md5, sha1 관련 함수 실행
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main){
+    int digest_len = is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
 
-	struct timeval start;
-	gettimeofday(&start, NULL);
-	ssu_find_sha1(argv, argv[4], start, head, &q, dt, true);
-	delete_list(head); // 링크드리스트 제거	
-	exit(0);
-}
-
-// sha1 관련 함수 실행
-// 입력인자 : 명령어 split, 찾을 디렉토리 경로, 현재 링크드리스트, 현재 큐, 파일 포인터, 메인에서 왔는지
-// 인자배열 : fsha1, 파일 확장자, 최소크기, 최대크기, 디렉토리
-void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main){
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
@@ -75,8 +55,8 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
         // 파일일경우
         if(fileOrDir == 1){
             // *.(확장자)인 경우
-			if(strlen(splitOper[1]) > 1 ){
-				char* ori_fname = strrchr(splitOper[1], '.'); // 지정 파일 확장자
+			if(strlen(extension) > 1 ){
+				char* ori_fname = strrchr(extension, '.'); // 지정 파일 확장자
 				char* cmp_fname = strrchr(filelist[i]->d_name, '.'); // 가져온 파일 확장자
 
 				// 확장자가 없거나 확장자가 다르면 패스
@@ -96,84 +76,20 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
 			if(filesize == 0) continue; // 0바이트인경우 패스
 
-			// 최소 크기 이상인지 확인
-			if(strcmp(splitOper[2], "~")){
-				long double min_byte = 0; // 비교할 최소 크기(byte)
-				char *pos = NULL;
-				min_byte = strtold(splitOper[2], &pos); // 실수, 문자열 분리
-				// 수만 입력한 경우
-				if(!strcmp(pos, "")){
-					double integer, fraction;
-					fraction = modf(min_byte, &integer);
-					// 실수 입력한 경우 에러
-					if(fraction != 0){
-						fprintf(stderr, "min size error : %s\n", strerror(errno));
-						return;
-					}
-				}
-				// KB = 1024byte
-				else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
-					min_byte *= 1024;
-				}
-				// MB = 1024KB
-				else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
-					min_byte *= (1024 * 1024);
-				}				
-				// GB = 1024MB
-				else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
-					min_byte *= (1024 * 1024 * 1024);
-				}
-				else{
-					fprintf(stderr, "min size error : %s\n", strerror(errno));
-					return;					
-				}
-				// 최소 크기보다 작은 경우 패스
-				if(filesize < min_byte) continue;
-			}
-			// 최대 크기 이하인지 확인
-			if(strcmp(splitOper[3], "~")){
-				long double max_byte = 0; // 비교할 최소 크기(byte)
-				char *pos = NULL;
-				max_byte = strtod(splitOper[3], &pos); // 실수, 문자열 분리
+            // ~ 입력한경우 검사 x, 최소 크기보다 작은 경우
+            if(min_byte != -1 && filesize < min_byte) continue;
 
-				// 수만 입력한 경우
-				if(!strcmp(pos, "")){
-					double integer, fraction;
-					fraction = modf(max_byte, &integer);
-					// 실수 입력한 경우 에러
-					if(fraction != 0){
-						fprintf(stderr, "min size error\n");
-						return;
-					}
-				}
-				// KB = 1024byte
-				else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
-					max_byte *= 1024;
-				}
-				// MB = 1024KB
-				else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
-					max_byte *= (1024 * 1024);
-				}				
-				// GB = 1024MB
-				else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
-					max_byte *= (1024 * 1024 * 1024);
-				}
-				else{
-					fprintf(stderr, "max size error\n");
-					return;					
-				}
-				// 최대 크기보다 큰 경우 패스
-				if(filesize > max_byte) continue;
-			}
+            // ~ 입력한경우 검사 x, 최대 크기보다 큰 경우
+            if(max_byte != -1 && filesize > max_byte) continue;	
 
 			// 파일 읽기 권한 없으면 패스
 			if(!st.st_mode & S_IRWXU) continue;
-			// sha1값 구하기
+			// md5값 구하기
 			FILE *fp = fopen(pathname, "r");
 			if (fp == NULL) continue; // fopen 에러시 패스
 
-			unsigned char filehash[SHA_DIGEST_LENGTH * 2 + 1]; // 해시값 저장할 문자열
-			strcpy(filehash, get_sha1(fp)); // 해시값 구해서 저장
+			unsigned char filehash[digest_len * 2 + 1]; // 해시값 저장할 문자열
+            is_md5 ? strcpy(filehash, get_md5(fp)) : strcpy(filehash, get_sha1(fp)); // 해시값 구해서 저장
 
 			fclose(fp);
 
@@ -223,7 +139,7 @@ void ssu_find_sha1(char *splitOper[OPER_LEN], char *find_path, struct timeval st
 	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
-		ssu_find_sha1(splitOper, pop_queue(q), start, list, q, dt, false);
+        ssu_find(is_md5, extension, min_byte, max_byte, pop_queue(q), thread_num, start, list, q, dt, false);
 	}
 	fclose(dt); // w모드 종료
 	dt = fopen("writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
@@ -668,6 +584,25 @@ int check_fileOrDir(char *path){
 	return fileOrDir;
 }
 
+// md5 값 조회
+char *get_md5(FILE *fp){
+	MD5_CTX c;
+	static unsigned char md[MD5_DIGEST_LENGTH];
+	static unsigned char buf[BUF_MAX];
+	int fd = fileno(fp);
+
+	MD5_Init(&c);
+	int i = read(fd, buf, BUF_MAX);
+	MD5_Update(&c, buf, (unsigned long)i);
+
+	MD5_Final(md,&c);
+
+	static char md5string[MD5_DIGEST_LENGTH * 2 + 1];
+	for(int i = 0; i < MD5_DIGEST_LENGTH; ++i)
+		sprintf(&md5string[i*2], "%02x", (unsigned int)md[i]);
+	return md5string;
+}
+
 // sha1 값 조회
 char *get_sha1(FILE *fp){
 	SHA_CTX c;
@@ -728,7 +663,7 @@ const char *size2comma(long long n){
 }
 
 // 리스트 끝에 추가
-void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[SHA_DIGEST_LENGTH]){
+void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]){
 	// 리스트 빌 경우(처음인경우 포함)
 	if(list -> next == NULL){
 		Node *newNode = malloc(sizeof(Node));
@@ -917,7 +852,7 @@ void del_onlyList(Node *list){
 }
 
 // 해시 일치할경우 인덱스 반환
-int search_hash(Node *list, int cmp_idx, unsigned char hash[SHA_DIGEST_LENGTH]){
+int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]){
     Node *cur = list->next; // head 다음
     int idx = 1;	
 

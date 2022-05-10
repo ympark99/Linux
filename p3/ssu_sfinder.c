@@ -15,6 +15,7 @@
 #include <math.h>
 #include "ssu_sfinder.h"
 #include "ssu_help.h"
+#include "ssu_find.h"
 
 // todo : fork 제거 필요
 
@@ -48,9 +49,12 @@ int main(){
 			else{
 				int option_opt;
 				int split_cnt = 0; // 실제 입력한 카운트 계산
-				long double min_byte = 0; // 비교할 최소 크기(byte)
-				long double max_byte = 0; // 비교할 최대 크기(byte)
-				char *pos = NULL;		
+
+				char extension[BUF_SIZE]; // 저장할 확장자
+				long double min_byte = -1; // 비교할 최소 크기(byte)
+				long double max_byte = -1; // 비교할 최대 크기(byte)
+				char dir_path[BUF_SIZE]; // 저장할 디렉토리 경로
+				char *pos = NULL; // 실수 계산시 저장할 포인터
 				int thread_num = 1; // 쓰레드 개수
 
 				for(int i = 0; i < OPER_LEN; i++){
@@ -72,7 +76,7 @@ int main(){
 								fprintf(stderr, "올바른 확장자 입력이 아님\n");
 								go_next = false;
 							}
-							printf("e : %s\n", optarg);
+							strcpy(extension, optarg);
 							input_opt[0] = true;
 							break;
 						case 'l' :
@@ -107,8 +111,7 @@ int main(){
 									go_next = false;
 									break;
 								}		
-							}	
-							printf("l : %s\n", optarg);
+							}
 							input_opt[1] = true;
 							break;
 						case 'h' : 
@@ -144,7 +147,6 @@ int main(){
 									break;
 								}
 							}						
-							printf("h : %s\n", optarg);
 							input_opt[2] = true;
 							break;
 						case 'd' : 
@@ -170,7 +172,7 @@ int main(){
 								go_next = false;
 								break;
 							}								
-							printf("d : %s\n", optarg);
+							strcpy(dir_path, optarg);
 							input_opt[3] = true;
 							break;
 						case 't' : 
@@ -186,7 +188,6 @@ int main(){
 								go_next = false;
 								break;
 							}
-							printf("t : %s\n", optarg);
 							break;												
 						default :
 							fprintf(stderr, "잘못된 입력\n");
@@ -205,12 +206,30 @@ int main(){
 					}
 				}
 
-				// todo : go_next true일경우 진행
-				// fmd5 or fsha1 실행
-				// !strcmp(splitOper[0], "fmd5") ?
-					// ssu_find_md5
-					// :
-					// ssu_find_sha1
+				if(go_next){
+					// 큐 선언
+					queue q;
+					init_queue(&q);
+					// 링크드리스트 head 선언
+					Node *head = malloc(sizeof(Node));
+					head->next = NULL;
+
+					// 찾은 파일 저장해둘 fp선언
+					FILE *dt = fopen("writeReadData.txt", "w+");
+					if(dt == NULL){
+						fprintf(stderr, "data file create error\n");
+						exit(1);
+					}
+
+					struct timeval start;
+					gettimeofday(&start, NULL);
+					// todo : md5, sha1 구분
+					!strcmp(splitOper[0], "fmd5") ?
+					ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true)
+					:
+					ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true);
+					delete_list(head); // 링크드리스트 제거
+				}
 			}
 		}
 		// exit 입력 시 종료
@@ -228,32 +247,4 @@ int main(){
 
 	fprintf(stdout, "Prompt End\n");
 	exit(0);
-}
-
-// 파일, 디렉토리 판별(파일 : 1, 디렉토리 : 2 리턴)
-int check_fileOrDir(char *path){
-	struct stat st;
-	int fileOrDir = 0;
-	// 파일 정보 얻기
-	if(lstat(path, &st) == -1){
-		fprintf(stderr, "stat error -> checkfile\n");
-		return -1;
-	}
-
-	// 파일 형식
-	switch (st.st_mode & S_IFMT){
-		case S_IFREG:
-			fileOrDir = 1;
-			break;
-		case S_IFDIR:
-			fileOrDir = 2;
-			break;	
-		case S_IFIFO:
-			fileOrDir = 0;
-			break;
-		case S_IFLNK:
-			fileOrDir = 0;
-			break;
-	}
-	return fileOrDir;
 }
