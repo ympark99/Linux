@@ -42,10 +42,10 @@ int main(){
 		// fmd5 or fsha1 명령 시
 		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){
 			// 명령어 인자 틀리면 에러 처리
-			if(idx != OPER_LEN)
+			if(idx != OPER_LEN && idx != OPER_LEN - 2)
 				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
 			else{
-				int param_opt;
+				int option_opt;
 				int split_cnt = 0; // 실제 입력한 카운트 계산
 				for(int i = 0; i < OPER_LEN; i++){
 					if(splitOper[i] == NULL) break;
@@ -53,11 +53,13 @@ int main(){
 				}
 				// todo : 같은 옵션 중복 입력, -옵션 아닌 다른 문자열 입력
 
-				bool go_next = true;
+				bool go_next = true; // 에러 있는지 확인
+				bool input_opt[4] = {false, }; // 필수 옵션 모두 입력했는지 확인 (-e, -l, -h, -d)
+
 				// getopt로 옵션 분리 및 검사
-				while((param_opt = getopt(split_cnt, splitOper, "e:l:h:d:t:")) != -1){
+				while((option_opt = getopt(split_cnt, splitOper, "e:l:h:d:t:")) != -1){
 					if(!go_next) break;
-					switch(param_opt){
+					switch(option_opt){
 						case 'e' :
 							// 확장자 에러 검사 (*또는 *.(확장자)만 ok)
 							if(strcmp(optarg, "*") != 0 && (strlen(optarg) > 1 && optarg[1] != '.')){
@@ -65,12 +67,15 @@ int main(){
 								go_next = false;
 							}
 							printf("e : %s\n", optarg);
+							input_opt[0] = true;
 							break;
 						case 'l' : 
 							printf("l : %s\n", optarg);
+							input_opt[1] = true;
 							break;
 						case 'h' : 
 							printf("h : %s\n", optarg);
+							input_opt[2] = true;
 							break;
 						case 'd' : 
 							// 파일경로에 ~입력시 홈디렉토리로 바꿈
@@ -94,6 +99,7 @@ int main(){
 								go_next = false;
 							}								
 							printf("d : %s\n", optarg);
+							input_opt[3] = true;
 							break;
 						case 't' : 
 							// todo : t 에러처리
@@ -107,6 +113,14 @@ int main(){
 				}
 				optind = 0; // optind 초기화
 
+				for(int i = 0; i < 4; i++){
+					if(!input_opt[i]){
+						fprintf(stderr, "필수 옵션 입력 x\n");
+						go_next = false;
+						break;
+					}
+				}
+
 				// todo : go_next true일경우 진행
 				// 최소, 최대 검사는 함수 내에서 진행
 				// fmd5 or fsha1 실행
@@ -119,9 +133,8 @@ int main(){
 		// exit 입력 시 종료
 		else if(splitOper[0] != NULL && !strcmp(oper, "exit")){
 			// exit 뒤 인자 붙으면 help와 동일한 결과 출력
-			if(splitOper[1] != NULL){
+			if(splitOper[1] != NULL) 
 				ssu_help();
-			}
 			else break;
 		}	
 		else if(splitOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
