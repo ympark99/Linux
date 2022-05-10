@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <math.h>
 #include "ssu_sfinder.h"
 #include "ssu_help.h"
 
@@ -47,6 +48,11 @@ int main(){
 			else{
 				int option_opt;
 				int split_cnt = 0; // 실제 입력한 카운트 계산
+				long double min_byte = 0; // 비교할 최소 크기(byte)
+				long double max_byte = 0; // 비교할 최대 크기(byte)
+				char *pos = NULL;		
+				int thread_num = 1; // 쓰레드 개수
+
 				for(int i = 0; i < OPER_LEN; i++){
 					if(splitOper[i] == NULL) break;
 					split_cnt++;
@@ -54,7 +60,7 @@ int main(){
 				// todo : 같은 옵션 중복 입력, -옵션 아닌 다른 문자열 입력
 
 				bool go_next = true; // 에러 있는지 확인
-				bool input_opt[4] = {false, }; // 필수 옵션 모두 입력했는지 확인 (-e, -l, -h, -d)
+				bool input_opt[4] = {false, }; // 필수 옵션 모두 입력했는지 확인 (-e, -l, -h, -d, -t)
 
 				// getopt로 옵션 분리 및 검사
 				while((option_opt = getopt(split_cnt, splitOper, "e:l:h:d:t:")) != -1){
@@ -69,11 +75,75 @@ int main(){
 							printf("e : %s\n", optarg);
 							input_opt[0] = true;
 							break;
-						case 'l' : 
+						case 'l' :
+							if(strcmp(optarg, "~")){
+								pos = NULL;
+								min_byte = strtold(optarg, &pos); // 문자열 변환
+								// 수만 입력한 경우
+								if(!strcmp(pos, "")){
+									double integer, fraction;
+									fraction = modf(min_byte, &integer); // 정수부 소수부 분리
+									// 실수 입력한 경우 에러
+									if(fraction != 0){
+										fprintf(stderr, "min size error\n");
+										go_next = false;
+										break;
+									}
+								}
+								// KB = 1024byte
+								else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
+									min_byte *= 1024;
+								}
+								// MB = 1024KB
+								else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
+									min_byte *= (1024 * 1024);
+								}				
+								// GB = 1024MB
+								else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
+									min_byte *= (1024 * 1024 * 1024);
+								}
+								else{
+									fprintf(stderr, "min size error\n");
+									go_next = false;
+									break;
+								}		
+							}	
 							printf("l : %s\n", optarg);
 							input_opt[1] = true;
 							break;
 						case 'h' : 
+							if(strcmp(optarg, "~")){
+								pos = NULL;
+								max_byte = strtold(optarg, &pos); // 문자열 변환
+								// 수만 입력한 경우
+								if(!strcmp(pos, "")){
+									double integer, fraction;
+									fraction = modf(max_byte, &integer); // 정수부 소수부 분리
+									// 실수 입력한 경우 에러
+									if(fraction != 0){
+										fprintf(stderr, "max size error\n");
+										go_next = false;
+										break;
+									}
+								}
+								// KB = 1024byte
+								else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
+									max_byte *= 1024;
+								}
+								// MB = 1024KB
+								else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
+									max_byte *= (1024 * 1024);
+								}				
+								// GB = 1024MB
+								else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
+									max_byte *= (1024 * 1024 * 1024);
+								}
+								else{
+									fprintf(stderr, "max size error\n");
+									go_next = false;
+									break;
+								}
+							}						
 							printf("h : %s\n", optarg);
 							input_opt[2] = true;
 							break;
@@ -84,6 +154,7 @@ int main(){
 								if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
 									fprintf(stderr, "user id error");
 									go_next = false;
+									break;
 								}
 								memmove(optarg, optarg + 1, strlen(optarg)); // 맨 처음 ~ 제거
 								char *str = malloc(sizeof(char) * BUF_SIZE); // 임시로 저장해둘 문자열
@@ -97,12 +168,24 @@ int main(){
 							if(fileOrDir != 2){
 								fprintf(stderr, "디렉토리가 아님\n");
 								go_next = false;
+								break;
 							}								
 							printf("d : %s\n", optarg);
 							input_opt[3] = true;
 							break;
 						case 't' : 
-							// todo : t 에러처리
+							// 두자리 이상 입력한 경우 에러
+							if(strlen(optarg) != 1){
+								fprintf(stderr, "잘못된 쓰레드 개수 입력\n");
+								go_next = false;
+								break;
+							}
+							thread_num = atoi(optarg);
+							if(thread_num == 0 || thread_num > 5){
+								fprintf(stderr, "잘못된 쓰레드 개수 입력\n");
+								go_next = false;
+								break;
+							}
 							printf("t : %s\n", optarg);
 							break;												
 						default :
@@ -113,6 +196,7 @@ int main(){
 				}
 				optind = 0; // optind 초기화
 
+				// 필수 입력 옵션 확인
 				for(int i = 0; i < 4; i++){
 					if(!input_opt[i]){
 						fprintf(stderr, "필수 옵션 입력 x\n");
@@ -122,7 +206,6 @@ int main(){
 				}
 
 				// todo : go_next true일경우 진행
-				// 최소, 최대 검사는 함수 내에서 진행
 				// fmd5 or fsha1 실행
 				// !strcmp(splitOper[0], "fmd5") ?
 					// ssu_find_md5

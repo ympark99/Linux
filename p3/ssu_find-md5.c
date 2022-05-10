@@ -98,72 +98,72 @@ void ssu_find_md5(char *splitOper[OPER_LEN], char *find_path, struct timeval sta
 
 			// 최소 크기 이상인지 확인
 			if(strcmp(splitOper[2], "~")){
-				long double min_byte = 0; // 비교할 최소 크기(byte)
-				char *pos = NULL;
-				min_byte = strtold(splitOper[2], &pos); // 문자열 변환
-				// 수만 입력한 경우
-				if(!strcmp(pos, "")){
-					double integer, fraction;
-					fraction = modf(min_byte, &integer); // 정수부 소수부 분리
-					// 실수 입력한 경우 에러
-					if(fraction != 0){
-						fprintf(stderr, "min size error : %s\n", strerror(errno));
-						return;
-					}
-				}
-				// KB = 1024byte
-				else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
-					min_byte *= 1024;
-				}
-				// MB = 1024KB
-				else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
-					min_byte *= (1024 * 1024);
-				}				
-				// GB = 1024MB
-				else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
-					min_byte *= (1024 * 1024 * 1024);
-				}
-				else{
-					fprintf(stderr, "min size error : %s\n", strerror(errno));
-					return;					
-				}
+				// long double min_byte = 0; // 비교할 최소 크기(byte)
+				// char *pos = NULL;
+				// min_byte = strtold(splitOper[2], &pos); // 문자열 변환
+				// // 수만 입력한 경우
+				// if(!strcmp(pos, "")){
+				// 	double integer, fraction;
+				// 	fraction = modf(min_byte, &integer); // 정수부 소수부 분리
+				// 	// 실수 입력한 경우 에러
+				// 	if(fraction != 0){
+				// 		fprintf(stderr, "min size error : %s\n", strerror(errno));
+				// 		return;
+				// 	}
+				// }
+				// // KB = 1024byte
+				// else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
+				// 	min_byte *= 1024;
+				// }
+				// // MB = 1024KB
+				// else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
+				// 	min_byte *= (1024 * 1024);
+				// }				
+				// // GB = 1024MB
+				// else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
+				// 	min_byte *= (1024 * 1024 * 1024);
+				// }
+				// else{
+				// 	fprintf(stderr, "min size error : %s\n", strerror(errno));
+				// 	return;					
+				// }
 				// 최소 크기보다 작은 경우 패스
-				if(filesize < min_byte) continue;
+				// if(filesize < min_byte) continue;
 			}
 			// 최대 크기 이하인지 확인
 			if(strcmp(splitOper[3], "~")){
-				long double max_byte = 0; // 비교할 최소 크기(byte)
-				char *pos = NULL;
-				max_byte = strtod(splitOper[3], &pos); // 실수, 문자열 분리
+				// long double max_byte = 0; // 비교할 최소 크기(byte)
+				// char *pos = NULL;
+				// max_byte = strtod(splitOper[3], &pos); // 실수, 문자열 분리
 
-				// 수만 입력한 경우
-				if(!strcmp(pos, "")){
-					double integer, fraction;
-					fraction = modf(max_byte, &integer);
-					// 실수 입력한 경우 에러
-					if(fraction != 0){
-						fprintf(stderr, "min size error\n");
-						return;
-					}
-				}
-				// KB = 1024byte
-				else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
-					max_byte *= 1024;
-				}
-				// MB = 1024KB
-				else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
-					max_byte *= (1024 * 1024);
-				}				
-				// GB = 1024MB
-				else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
-					max_byte *= (1024 * 1024 * 1024);
-				}
-				else{
-					fprintf(stderr, "max size error\n");
-					return;					
-				}
-				// 최대 크기보다 큰 경우 패스
-				if(filesize > max_byte) continue;
+				// // 수만 입력한 경우
+				// if(!strcmp(pos, "")){
+				// 	double integer, fraction;
+				// 	fraction = modf(max_byte, &integer);
+				// 	// 실수 입력한 경우 에러
+				// 	if(fraction != 0){
+				// 		fprintf(stderr, "min size error\n");
+				// 		return;
+				// 	}
+				// }
+				// // KB = 1024byte
+				// else if(!strcmp(pos, "kb") || !strcmp(pos, "KB")){
+				// 	max_byte *= 1024;
+				// }
+				// // MB = 1024KB
+				// else if(!strcmp(pos, "mb") || !strcmp(pos, "MB")){
+				// 	max_byte *= (1024 * 1024);
+				// }				
+				// // GB = 1024MB
+				// else if(!strcmp(pos, "gb") || !strcmp(pos, "GB")){
+				// 	max_byte *= (1024 * 1024 * 1024);
+				// }
+				// else{
+				// 	fprintf(stderr, "max size error\n");
+				// 	return;					
+				// }
+				// // 최대 크기보다 큰 경우 패스
+				// if(filesize > max_byte) continue;
 			}
 
 			// 파일 읽기 권한 없으면 패스
