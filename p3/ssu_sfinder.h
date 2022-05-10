@@ -6,7 +6,7 @@
 #endif
 
 #ifndef OPER_LEN
-    #define OPER_LEN 5
+    #define OPER_LEN 11
 #endif
 
 int check_fileOrDir(char *path);

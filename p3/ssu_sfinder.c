@@ -40,53 +40,80 @@ int main(){
 		}
 
 		// fmd5 or fsha1 명령 시
-		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){		
+		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){
 			// 명령어 인자 틀리면 에러 처리
 			if(idx != OPER_LEN)
 				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
-			// 확장자 에러 검사 (*또는 *.(확장자)만 ok)
-			else if(strcmp(splitOper[1], "*") != 0 && (strlen(splitOper[1]) > 1 && splitOper[1][1] != '.'))
-				fprintf(stderr, "올바른 확장자 입력이 아님\n");
-			// 최소, 최대 검사는 함수 내에서 진행
 			else{
-				// 파일경로에 ~입력시 홈디렉토리로 바꿈
-				if(splitOper[4][0] == '~'){
-					struct passwd *pwd;
-					if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
-						fprintf(stderr, "user id error");
-					}
-					memmove(splitOper[4], splitOper[4] + 1, strlen(splitOper[4])); // 맨 처음 ~ 제거
-					char *str = malloc(sizeof(char) * BUF_SIZE); // 임시로 저장해둘 문자열
-					strcpy(str, splitOper[4]);
-					sprintf(splitOper[4], "%s%s", pwd->pw_dir, str); // 홈디렉토리/하위경로로 합쳐줌
-					free(str);
+				int param_opt;
+				int split_cnt = 0; // 실제 입력한 카운트 계산
+				for(int i = 0; i < OPER_LEN; i++){
+					if(splitOper[i] == NULL) break;
+					split_cnt++;
 				}
+				// todo : 같은 옵션 중복 입력, -옵션 아닌 다른 문자열 입력
 
-				int fileOrDir = check_fileOrDir(splitOper[4]); // 파일 or 디렉토리인지 체크
-				// TARGET_DIRECTORY 검사 (디렉토리 아닌경우)
-				if(fileOrDir != 2){
-					fprintf(stderr, "디렉토리가 아님\n");
+				bool go_next = true;
+				// getopt로 옵션 분리 및 검사
+				while((param_opt = getopt(split_cnt, splitOper, "e:l:h:d:t:")) != -1){
+					if(!go_next) break;
+					switch(param_opt){
+						case 'e' :
+							// 확장자 에러 검사 (*또는 *.(확장자)만 ok)
+							if(strcmp(optarg, "*") != 0 && (strlen(optarg) > 1 && optarg[1] != '.')){
+								fprintf(stderr, "올바른 확장자 입력이 아님\n");
+								go_next = false;
+							}
+							printf("e : %s\n", optarg);
+							break;
+						case 'l' : 
+							printf("l : %s\n", optarg);
+							break;
+						case 'h' : 
+							printf("h : %s\n", optarg);
+							break;
+						case 'd' : 
+							// 파일경로에 ~입력시 홈디렉토리로 바꿈
+							if(optarg[0] == '~'){
+								struct passwd *pwd;
+								if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
+									fprintf(stderr, "user id error");
+									go_next = false;
+								}
+								memmove(optarg, optarg + 1, strlen(optarg)); // 맨 처음 ~ 제거
+								char *str = malloc(sizeof(char) * BUF_SIZE); // 임시로 저장해둘 문자열
+								strcpy(str, optarg);
+								sprintf(optarg, "%s%s", pwd->pw_dir, str); // 홈디렉토리/하위경로로 합쳐줌
+								free(str);
+							}
+
+							int fileOrDir = check_fileOrDir(optarg); // 파일 or 디렉토리인지 체크
+							// TARGET_DIRECTORY 검사 (디렉토리 아닌경우)
+							if(fileOrDir != 2){
+								fprintf(stderr, "디렉토리가 아님\n");
+								go_next = false;
+							}								
+							printf("d : %s\n", optarg);
+							break;
+						case 't' : 
+							// todo : t 에러처리
+							printf("t : %s\n", optarg);
+							break;												
+						default :
+							fprintf(stderr, "잘못된 입력\n");
+							go_next = false;
+							break;
+					}
 				}
-				else{
-					// 프로세스 생성 및 실행
-					int pid, status;
-					pid = fork();
-					if(pid < 0){
-						fprintf(stderr, "fork error :");
-						exit(1);
-					}
-					else if(pid == 0){ // 0인 경우 자식 프로세스
-					// fmd5 또는 sha1 실행
-					!strcmp(splitOper[0], "fmd5") ?
-						execl("./ssu_find-md5", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL) 
-						:
-						execl("./ssu_find-sha1", splitOper[0], splitOper[1], splitOper[2], splitOper[3], splitOper[4], NULL);
-						exit(0);
-					}
-					else{ // 부모 프로세스
-						wait(&status); // child 종료때까지 대기
-					}
-				}
+				optind = 0; // optind 초기화
+
+				// todo : go_next true일경우 진행
+				// 최소, 최대 검사는 함수 내에서 진행
+				// fmd5 or fsha1 실행
+				// !strcmp(splitOper[0], "fmd5") ?
+					// ssu_find_md5
+					// :
+					// ssu_find_sha1
 			}
 		}
 		// exit 입력 시 종료
