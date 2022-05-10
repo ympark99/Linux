@@ -7,6 +7,9 @@
         "ssu_find-md5.h": "c",
         "md5.h": "c",
         "pwd.h": "c",
-        "sys_errlist.h": "c"
+        "sys_errlist.h": "c",
+        "ssu_sdup.h": "c",
+        "string.h": "c",
+        "wait.h": "c"
     }
 }
