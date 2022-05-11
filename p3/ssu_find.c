@@ -166,11 +166,9 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		return;
 	}
 
-	// 파일크기대로 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
-	// sort_set(set, set_size);
-	// sort_list(list, list_size);
-
-	// print_list(list); // 리스트 출력
+	// 파일크기 오름차순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
+	sort_set(set, set_size);
+	print_set(set); // 세트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
 	// option(list); // 옵션 실행
 }
@@ -180,7 +178,6 @@ void file2set(FILE * dt, Set *set){
 	char *line;
 	char *cmpline;
 	Set *set_cur = set; // 현재 세트 계산
-	int set_cnt = 0;
 	while (!feof(dt)){	
 		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
 		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
@@ -222,14 +219,11 @@ void file2set(FILE * dt, Set *set){
 					// 처음 찾은 경우 세트 리스트 생성
 					long long filesize = atoll(splitFile[1]);
 					append_set(set, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 세트에 추가
-					set_cnt++;
+					set_cur = set_cur->next;
 					is_first = false;
 				}
 				// 리스트에 추가
 				long long filesize = atoll(cmp_split[1]);
-				set_cur = set;
-				for(int i = 0; i < set_cnt; i++)
-					set_cur = set_cur->next;
 
 				append_list(set_cur->nodeList, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5]); // 리스트에 추가
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
@@ -673,34 +667,30 @@ const char *size2comma(long long n){
 }
 
 // 세트 추가
-void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len])
-{
-    Set *newfile = (Set *)malloc(sizeof(Set));
-    memset(newfile, 0, sizeof(Set));
+void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]){
+	Set *cur_set;
+    Set *newSet = (Set *)malloc(sizeof(Set));
+    memset(newSet, 0, sizeof(Set));
 
-    newfile->filesize = filesize;
-    strcpy(newfile->hash, hash);
+    newSet->filesize = filesize;
+    strcpy(newSet->hash, hash);
 
-    newfile->nodeList = (Node *)malloc(sizeof(Node));
-    memset(newfile->nodeList, 0, sizeof(Node));
+    newSet->nodeList = (Node *)malloc(sizeof(Node));
+    memset(newSet->nodeList, 0, sizeof(Node));
 
-    append_list(newfile->nodeList, filesize, path, mtime, atime, hash);
-    newfile->next = NULL;
+    append_list(newSet->nodeList, filesize, path, mtime, atime, hash);
+    newSet->next = NULL;
 
     if (set->next == NULL) {
-        set->next = newfile;
+        set->next = newSet;
     }    
-    else {
-        Set *cur_node = set->next, *prev_node = set, *next_node;
+	else{
+		cur_set = set->next;
+		while (cur_set->next != NULL)
+			cur_set = cur_set->next;
 
-        while (cur_node != NULL && cur_node->filesize < newfile->filesize) {
-            prev_node = cur_node;
-            cur_node = cur_node->next;
-        }
-
-        newfile->next = cur_node;
-        prev_node->next = newfile;
-    }    
+		cur_set->next = newSet;
+	}
 }
 
 // 리스트 끝에 추가
@@ -725,36 +715,6 @@ void append_list(Node *list, long long filesize, char *path, char *mtime, char *
 
 		cur_list->next = newNode;
 	}
-
-	// // 리스트 빌 경우(처음인경우 포함)
-	// if(list -> next == NULL){
-	// 	Node *newNode = malloc(sizeof(Node));
-	// 	newNode->next = list->next;
-
-	// 	newNode->filesize = filesize;
-	// 	strcpy(newNode->path, path);
-	// 	strcpy(newNode->mtime, mtime);
-	// 	strcpy(newNode->atime, atime);
-	// 	strcpy(newNode->hash, hash);
-
-	// 	list->next = newNode;
-	// }
-	// else{
-	// 	Node *cur = list;
-	// 	while (cur->next != NULL)
-	// 		cur = cur->next;
-		
-	// 	Node *newNode = malloc(sizeof(Node));
-	// 	newNode->next = cur->next;
-
-	// 	newNode->filesize = filesize;
-	// 	strcpy(newNode->path, path);
-	// 	strcpy(newNode->mtime, mtime);
-	// 	strcpy(newNode->atime, atime);
-	// 	strcpy(newNode->hash, hash);
-
-	// 	cur->next = newNode;
-	// }
 }
 
 // 세트 크기 구하기
@@ -781,6 +741,28 @@ int get_listLen(Node *list){
     }
 
     return cnt;
+}
+
+// 세트 출력
+void print_set(Set *set){
+	Set *set_cur = set->next;
+	int set_idx = 1;	
+
+	while (set_cur != NULL){
+		Node *node_cur = set_cur->nodeList->next;
+		int i = 1;
+
+		fprintf(stdout, "---- Identical files #%d (%s bytes - ", set_idx++, size2comma(node_cur->filesize));
+		fprintf(stdout, "%s", node_cur->hash);
+		fprintf(stdout, ") ----\n");
+
+		while (node_cur != NULL){
+			fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", i++, node_cur->path, node_cur->mtime, node_cur->atime);
+			node_cur = node_cur->next;
+		}
+		printf("\n");
+		set_cur = set_cur->next;
+	}
 }
 
 // 리스트 전체 데이터 출력 and 라벨링
@@ -938,6 +920,21 @@ void del_onlyList(Node *list){
 }
 
 // 해시 일치할경우 인덱스 반환
+int search_set(Set *set, unsigned char hash[digest_len]){
+	Set *cur = set;
+	int idx = 0;
+
+	while (cur != NULL){
+		if (!strcmp(cur->hash, hash))
+			return idx;
+		cur = cur->next;
+		idx++;
+	}
+
+	return 0;
+}
+
+// 해시 일치할경우 인덱스 반환
 int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]){
     Node *cur = list->next; // head 다음
     int idx = 1;	
@@ -954,6 +951,21 @@ int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]){
     return -1;
 }
 
+// 세트 버블정렬
+// 파일크기순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
+void sort_set(Set *set, int set_size){
+    Set *cur = set->next; // head 다음
+    for (int i = 0; i < set_size; i++){
+        if(cur->next == NULL) break;
+        for (int j = 0; j < set_size - 1 - i; j++){
+            if(cur->filesize > cur->next->filesize)
+                swap_set(cur, cur->next); // swap
+            cur = cur->next;
+        }
+        cur = set->next;
+    }
+}
+
 // 리스트 버블정렬
 // 파일크기순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
 void sort_list(Node *list, int list_size){
@@ -967,6 +979,24 @@ void sort_list(Node *list, int list_size){
         }
         cur = list->next;
     }
+}
+
+void swap_set(Set *set1, Set *set2){
+    int fileSize;
+	Node *nodeList;
+	unsigned char hash[BUF_SIZE];
+
+	fileSize = set1->filesize;
+	nodeList = set1->nodeList;
+	strcpy(hash, set1->hash);
+
+    set1->filesize = set2->filesize;
+	set1->nodeList = set2->nodeList;
+	strcpy(set1->hash, set2->hash);
+
+    set2->filesize = fileSize;
+	set2->nodeList = nodeList;
+	strcpy(set2->hash, hash);
 }
 
 void swap_node(Node *node1, Node *node2){

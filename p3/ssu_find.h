@@ -86,6 +86,11 @@ const char *size2comma(long long n);
 
 void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]);
 void delete_set(Set *set);
+void print_set(Set *set);
+int search_set(Set *set, unsigned char hash[digest_len]);
+void sort_set(Set *set, int set_size);
+void swap_set(Set *set1, Set *set2);
+
 
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]);
 void print_list(Node *list);
