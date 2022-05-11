@@ -75,6 +75,7 @@ int main(){
 							if(strcmp(optarg, "*") != 0 && (strlen(optarg) > 1 && optarg[1] != '.')){
 								fprintf(stderr, "올바른 확장자 입력이 아님\n");
 								go_next = false;
+								break;
 							}
 							strcpy(extension, optarg);
 							input_opt[0] = true;
@@ -211,7 +212,7 @@ int main(){
 					queue q;
 					init_queue(&q);
 					// 링크드리스트 head 선언
-					Node *head = malloc(sizeof(Node));
+					Set *head = malloc(sizeof(Set));
 					head->next = NULL;
 
 					// 찾은 파일 저장해둘 fp선언
@@ -228,7 +229,7 @@ int main(){
 					ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true)
 					:
 					ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true);
-					delete_list(head); // 링크드리스트 제거
+					delete_set(head); // 세트 제거
 				}
 			}
 		}

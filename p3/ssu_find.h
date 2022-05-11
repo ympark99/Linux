@@ -32,7 +32,7 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
-// 동일 파일 링크드리스트
+// 세트 당 파일리스트
 typedef struct Nodes{
 	struct Nodes *next; // 다음 주소
 	long long filesize; // 파일 크기(byte)
@@ -43,6 +43,14 @@ typedef struct Nodes{
 	int set_num; // 현재 세트 번호
 	int idx_num; // 세트 내 인덱스 번호
 }Node;
+
+// 중복 세트
+typedef struct Set{
+	struct Set *next; // 다음 주소
+	Node *nodeList; // 세트 당 파일리스트
+	long long filesize; // 파일 크기(byte)
+	unsigned char hash[BUF_SIZE]; // hash value
+}Set;
 
 typedef struct QNode{
 	char path[BUF_SIZE];
@@ -57,8 +65,8 @@ typedef struct Queue{
 }queue;
 
 int digest_len;
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Node *list, queue *q, FILE *dt, bool from_main);
-void file2list(FILE * dt, Node *list);
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main);
+void file2set(FILE * dt, Set *list);
 void option(Node *list);
 void option_d(char *splitOper[OPTION_LEN], Node *list);
 void option_i(int set_idx, Node *list);
@@ -72,8 +80,12 @@ char *get_md5(FILE *fp);
 char *get_sha1(FILE *fp);
 char* get_time(time_t stime, char * str);
 void get_searchtime(struct timeval start, struct timeval end);
+int get_setLen(Set *set);
 int get_listLen(Node *list);
 const char *size2comma(long long n);
+
+void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]);
+void delete_set(Set *set);
 
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]);
 void print_list(Node *list);

@@ -1,6 +1,6 @@
 all : ssu_sfinder
 ssu_sfinder : ssu_sfinder.o ssu_help.o ssu_find.o
-	gcc -Wall ssu_sfinder.o ssu_help.o ssu_find.o -o ssu_sfinder -lcrypto -lssl
+	gcc -Wall ssu_sfinder.o ssu_help.o ssu_find.o -o ssu_sfinder -lcrypto -lssl -g
 
 ssu_sfinder.o : ssu_sfinder.c ssu_sfinder.h ssu_help.h
 	gcc -c ssu_sfinder.c
