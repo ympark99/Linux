@@ -15,7 +15,7 @@
 #include <sys/time.h> // gettimeofday 사용
 #include <errno.h>
 #include "ssu_find.h"
-// todo : 링크드리스트 수정
+// todo : node에서 filesize/hash 제거 , 옵션
 
 // md5, sha1 관련 함수 실행
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main){
