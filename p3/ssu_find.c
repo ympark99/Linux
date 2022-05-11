@@ -98,14 +98,17 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			char* astr = (char*)malloc(sizeof(char) * BUF_SIZE);
 			strcpy(mstr, get_time(st.st_mtime, mstr));
 			strcpy(astr, get_time(st.st_atime, mstr));
+			uid_t uid = st.st_uid;
+			gid_t gid = st.st_gid;
+			unsigned long mode = st.st_mode;
 
 			// 파일에 저장
 			if(dt != NULL){
-				char size2str[BUF_SIZE];
-				sprintf(size2str, "%lld", (long long)filesize);
+				char to_str[BUF_SIZE];
+				sprintf(to_str, "%lld", (long long)filesize);
 				fputs("*", dt); // 체크 여부
 				fputs("|", dt);
-				fputs(size2str, dt); // 파일 크기
+				fputs(to_str, dt); // 파일 크기
 				fputs("|", dt);
 				fputs(pathname, dt); // 파일 절대경로
 				fputs("|", dt);
@@ -113,9 +116,18 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 				fputs("|", dt);
 				fputs(astr, dt); // atime
 				fputs("|", dt);
-				fputs(filehash, dt);
+				fputs(filehash, dt); // hash
 				fputs("|", dt);
-				fputs("\n", dt);
+				sprintf(to_str, "%d", (int)uid); // uid
+				fputs(to_str, dt);
+				fputs("|", dt);
+				sprintf(to_str, "%d", (int)gid); // gid
+				fputs(to_str, dt);
+				fputs("|", dt);
+				sprintf(to_str, "%lu", mode); // mode
+				fputs(to_str, dt);
+				fputs("|", dt);		
+				fputs("\n", dt); // enter
 			}
 			free(mstr);
 			free(astr);
@@ -218,14 +230,19 @@ void file2set(FILE * dt, Set *set){
 				if(is_first){
 					// 처음 찾은 경우 세트 리스트 생성
 					long long filesize = atoll(splitFile[1]);
-					append_set(set, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5]); // 세트에 추가
+					int uid = atoi(splitFile[6]);
+					int gid = atoi(splitFile[7]);
+					int mode = atoi(splitFile[8]);
+					append_set(set, filesize, splitFile[2], splitFile[3], splitFile[4], splitFile[5], uid, gid, mode); // 세트에 추가
 					set_cur = set_cur->next;
 					is_first = false;
 				}
 				// 리스트에 추가
 				long long filesize = atoll(cmp_split[1]);
-
-				append_list(set_cur->nodeList, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5]); // 리스트에 추가
+				int uid = atoi(splitFile[6]);
+				int gid = atoi(splitFile[7]);
+				int mode = atoi(splitFile[8]);
+				append_list(set_cur->nodeList, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5], uid, gid, mode); // 리스트에 추가
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
 				fputs("**|", dt); // **으로 체크 표시
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
@@ -667,7 +684,7 @@ const char *size2comma(long long n){
 }
 
 // 세트 추가
-void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]){
+void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode){
 	Set *cur_set;
     Set *newSet = (Set *)malloc(sizeof(Set));
     memset(newSet, 0, sizeof(Set));
@@ -678,7 +695,7 @@ void append_set(Set *set, long long filesize, char *path, char *mtime, char *ati
     newSet->nodeList = (Node *)malloc(sizeof(Node));
     memset(newSet->nodeList, 0, sizeof(Node));
 
-    append_list(newSet->nodeList, filesize, path, mtime, atime, hash);
+    append_list(newSet->nodeList, filesize, path, mtime, atime, hash, uid, gid, mode);
     newSet->next = NULL;
 
     if (set->next == NULL) {
@@ -694,7 +711,7 @@ void append_set(Set *set, long long filesize, char *path, char *mtime, char *ati
 }
 
 // 리스트 끝에 추가
-void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]){
+void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode){
 	Node *cur_list;
 
 	Node *newNode = (Node *)malloc(sizeof(Node));
@@ -704,6 +721,9 @@ void append_list(Node *list, long long filesize, char *path, char *mtime, char *
 	strcpy(newNode->mtime, mtime);
 	strcpy(newNode->atime, atime);
 	strcpy(newNode->hash, hash);
+	newNode->uid = uid;
+	newNode->gid = gid;
+	newNode->mode = mode;
 	newNode->next = NULL;
 
 	if (list->next == NULL)
@@ -757,7 +777,7 @@ void print_set(Set *set){
 		fprintf(stdout, ") ----\n");
 
 		while (node_cur != NULL){
-			fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", i++, node_cur->path, node_cur->mtime, node_cur->atime);
+			fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s) (uid : %d) (gid : %d) (mode : %ld)\n", i++, node_cur->path, node_cur->mtime, node_cur->atime, node_cur->uid, node_cur->gid, node_cur->mode);
 			node_cur = node_cur->next;
 		}
 		printf("\n");

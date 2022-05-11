@@ -14,7 +14,7 @@
 #endif
 
 #ifndef FILEDATA_SIZE
-    #define FILEDATA_SIZE 7 // 마지막은 \n
+    #define FILEDATA_SIZE 10 // 마지막은 \n
 #endif
 
 #ifndef COMMA_SIZE
@@ -40,6 +40,9 @@ typedef struct Nodes{
 	char mtime[BUF_SIZE]; // mtime
 	char atime[BUF_SIZE]; // atime
 	unsigned char hash[BUF_SIZE]; // hash value
+	int uid; // 사용자 ID
+	int gid; // 그룹 ID
+	unsigned long mode; // 모드
 	int set_num; // 현재 세트 번호
 	int idx_num; // 세트 내 인덱스 번호
 }Node;
@@ -84,7 +87,7 @@ int get_setLen(Set *set);
 int get_listLen(Node *list);
 const char *size2comma(long long n);
 
-void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]);
+void append_set(Set *set, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
 void delete_set(Set *set);
 void print_set(Set *set);
 int search_set(Set *set, unsigned char hash[digest_len]);
@@ -92,7 +95,7 @@ void sort_set(Set *set, int set_size);
 void swap_set(Set *set1, Set *set2);
 
 
-void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len]);
+void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
 void print_list(Node *list);
 void delete_list(Node *list);
 void del_node(Node *list, int set_num, int idx_num);
