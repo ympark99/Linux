@@ -382,13 +382,14 @@ void delete(Set *set){
 			if(go_next){
 				Set *set_cur = set;
 				Set *set_pre;
+				// set_cur 계산
+				for(int i = 0; i < set_idx; i++){
+					set_pre = set_cur;
+					set_cur = set_cur->next;
+				}				
 				switch (opt_idx){
 					case 1: // d옵션
 						// 리스트 인덱스 에러 처리
-						for(int i = 0; i < set_idx; i++){
-							set_pre = set_cur;
-							set_cur = set_cur->next;
-						}
 						if(list_idx > get_listLen(set_cur->nodeList)){
 							fprintf(stderr, "LIST_IDX 입력 에러\n");
 							break;
@@ -396,7 +397,7 @@ void delete(Set *set){
 						delete_d(set, set_cur, set_pre, set_idx, list_idx); // 현재 세트 인덱스 삭제
 						break;
 					case 2: // i옵션
-						printf("option i\n");
+						delete_i(set, set_cur, set_pre);
 						break;
 					case 3: // f옵션
 						printf("option f\n");
@@ -434,67 +435,59 @@ void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx){
 		// 하나만 남은 경우 제거
 		if(get_listLen(set_cur->nodeList) <= 1)
 			del_set(set_cur, set_pre);
-
 		print_set(set); // 세트 출력
 		if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 	}
 }
 
-// i옵션
-void option_i(int set_idx, Node *list){
-	// Node *cur = list->next;
-	// Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
+// 삭제 i옵션
+void delete_i(Set *set, Set *set_cur, Set *set_pre){
+	Node *cur = set_cur->nodeList->next;
+	Node *pre = set_cur->nodeList; // 삭제 시 cur 위치 복구해줄 포인터
 
-	// // 세트 같을때까지 탐색
-	// while (cur->set_num != set_idx){
-	// 	if(cur->next == NULL){
-	// 		fprintf(stderr, "세트 범위 벗어남\n");
-	// 		return;
-	// 	}
-	// 	pre = cur;
-	// 	cur = cur->next;
-	// }
+	// 세트 내에서 탐색
+	while (cur != NULL){
+		char *oper = malloc(sizeof(char) * BUF_SIZE);
+		fprintf(stdout, "Delete \"%s\"? [y/n] ", cur->path);
 
-	// // 세트 내에서 탐색
-	// while (cur->set_num == set_idx){
-	// 	char *oper = malloc(sizeof(char) * BUF_SIZE);
-	// 	fprintf(stdout, "Delete \"%s\"? [y/n] ", cur->path);
+		fgets(oper, BUF_SIZE, stdin); // yes or no
+		oper[strlen(oper)-1] = '\0'; // 공백 제거
 
-	// 	fgets(oper, BUF_SIZE, stdin); // yes or no
-	// 	oper[strlen(oper)-1] = '\0'; // 공백 제거
-
-	// 	// 시작 공백 제거
-	// 	while(oper[0] == ' '){
-	// 		memmove(oper, oper + 1, strlen(oper));
-	// 	}		
+		// 시작 공백 제거
+		while(oper[0] == ' '){
+			memmove(oper, oper + 1, strlen(oper));
+		}		
 		
-	// 	if(!strcasecmp(oper, "Y") || !strcasecmp(oper, "y")){
-	// 		//파일 삭제
-	// 		if(unlink(cur->path) == -1){
-	// 			fprintf(stderr, "%s delete error", cur->path);
-	// 			return;
-	// 		}
-	// 		else{
-	// 			del_node(list, cur->set_num, cur->idx_num); // 해당 노드 연결 리스트에서 삭제
-	// 			cur = pre->next; // 삭제했으므로 cur 위치 복구
-	// 		}
-	// 	}
-	// 	else if(!strcasecmp(oper, "N") && !strcasecmp(oper, "n")){
-	// 		pre = cur;
-	// 		cur = cur->next;
-	// 	}
-	// 	else{
-	// 		fprintf(stderr, "y, Y, n, N 중 하나 입력\n");
-	// 		return;
-	// 	}
-	// 	free(oper);
+		if(!strcasecmp(oper, "Y") || !strcasecmp(oper, "y")){
+			//파일 삭제
+			if(unlink(cur->path) == -1){
+				fprintf(stderr, "%s delete error", cur->path);
+				return;
+			}
+			else{
+				del_node(cur, pre); // 해당 노드 삭제
+				cur = pre->next; // 삭제했으므로 cur 위치 복구
+			}
+		}
+		else if(!strcasecmp(oper, "N") && !strcasecmp(oper, "n")){
+			pre = cur;
+			cur = cur->next;
+		}
+		else{
+			fprintf(stderr, "y, Y, n, N 중 하나 입력\n");
+			return;
+		}
+		free(oper);
 	
-	// 	if(cur == NULL) break; // 마지막인 경우 종료
-	// }
-	// fprintf(stdout, "\n");
-	// del_onlySet(list, set_idx); // 하나만 남은 경우 제거
-	// print_list(list); // 프린트
-	// if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
+		if(cur == NULL) break; // 마지막인 경우 종료
+	}
+	fprintf(stdout, "\n");
+
+	// 하나만 남은 경우 제거
+	if(get_listLen(set_cur->nodeList) <= 1)
+		del_set(set_cur, set_pre);
+	print_set(set); // 세트 출력
+	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
 // f옵션
