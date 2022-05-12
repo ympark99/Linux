@@ -216,7 +216,7 @@ int main(){
 					head->next = NULL;
 
 					// 찾은 파일 저장해둘 fp선언
-					FILE *dt = fopen("writeReadData.txt", "w+");
+					FILE *dt = fopen(".writeReadData.txt", "w+");
 					if(dt == NULL){
 						fprintf(stderr, "data file create error\n");
 						exit(1);

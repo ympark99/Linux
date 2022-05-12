@@ -154,14 +154,14 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
         ssu_find(is_md5, extension, min_byte, max_byte, pop_queue(q), thread_num, start, set, q, dt, false);
 	}
 	fclose(dt); // w모드 종료
-	dt = fopen("writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
+	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
 	if(dt == NULL) fprintf(stderr, "fopen read error\n");
 	// 중복파일 리스트 추가
 	file2set(dt, set);
 	fclose(dt);
 
 	// 데이터 파일 삭제
-	if(unlink("writeReadData.txt") == -1)
+	if(unlink(".writeReadData.txt") == -1)
 		fprintf(stderr, "writeReadData delete error\n");
 
 	struct timeval end; 
