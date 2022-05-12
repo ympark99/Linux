@@ -14,6 +14,7 @@
 #include <openssl/sha.h>
 #include <sys/time.h> // gettimeofday 사용
 #include <errno.h>
+#include <pwd.h>
 #include "ssu_find.h"
 // todo : node에서 filesize/hash 제거 , 옵션
 
@@ -403,7 +404,7 @@ void delete(Set *set){
 						delete_f(set, set_cur, set_pre, set_idx);
 						break;
 					case 4: // t옵션
-						printf("option t\n");
+						delete_t(set, set_cur, set_pre, set_idx);
 						break;														
 					default:
 						break;
@@ -527,76 +528,96 @@ void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 }
 
 // t옵션
-void option_t(int set_idx, Node *list){
-	// // 휴지통 경로 생성 (이미 존재한 경우는 에러x)
-	// if(mkdir("trash", 0776) == -1 && errno != EEXIST){ 
-	// 	fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
-	// 	exit(1);
-	// }
+void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
+	struct passwd *pwd;
+	if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
+		fprintf(stderr, "user id error");
+	}
+	char trash_dir[BUF_SIZE]; // 제거된 파일 경로
+	strcpy(trash_dir, pwd->pw_dir);
+	//todo : 제거된 파일 정보 경로 만들기
 
-	// Node *cur = list->next;
-	// Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
+	char now_path[BUF_SIZE];
+	getcwd(now_path, BUF_SIZE); // 현재 디렉토리 경로 얻기
 
-	// // 세트 같을때까지 탐색
-	// while (cur->set_num != set_idx){
-	// 	if(cur->next == NULL){
-	// 		fprintf(stderr, "세트 범위 벗어남\n");
-	// 		return;
-	// 	}
-	// 	pre = cur;
-	// 	cur = cur->next;
-	// }
+	if(chdir(pwd->pw_dir) < 0){
+		fprintf(stderr, "chdir error\n");
+		exit(1);
+	}
 
-	// Node *recent = get_recent(set_idx, cur); // 가장 최근 시간 노드 구하기
+	strcat(trash_dir, "/.Trash");
+	// 휴지통 경로 생성 (이미 존재한 경우는 에러x)
+	if(mkdir(trash_dir, 0776) == -1 && errno != EEXIST){ 
+		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
+		exit(1);
+	}
+	strcat(trash_dir, "/files");
+	if(mkdir(trash_dir, 0776) == -1 && errno != EEXIST){ 
+		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
+		exit(1);
+	}	
 
-	// // 세트 내에서 탐색
-	// while (cur->set_num == set_idx){
-	// 	// 가장 최근 수정 노드 아니라면
-	// 	if(cur != recent){
-	// 		// 파일 이동을 위해 먼저 복사하기
-	// 		char *str = malloc(sizeof(char) * PATH_SIZE);
-	// 		sprintf(str, "trash%s", strrchr(cur->path, '/')); // trash 파일 경로 만들어주기
-	// 		if(link(cur->path, str) == -1){
-	// 			if(errno != EEXIST){
-	// 				fprintf(stderr, "link error\n");
-	// 				exit(1);
-	// 			}
-	// 			// 같은 이름의 파일이 존재할 경우 -> cp1, cp2, ... 이름붙여 휴지통으로 이동
-	// 			else{
-	// 				int cpnum = 1;
-	// 				while(1){
-	// 					char str2[PATH_SIZE];
-	// 					if(strrchr(cur->path, '.') == NULL) // 확장자 없는 파일인경우
-	// 						sprintf(str2, "trash/cp%d", cpnum);
-	// 					else 
-	// 						sprintf(str2, "trash/cp%d%s", cpnum, strrchr(cur->path, '.'));
-	// 					cpnum++;
-	// 					if(!(link(cur->path, str2) == -1 && errno == EEXIST)) break; // 중복파일 있으면 다음 숫자 이름붙임
-	// 				}
-	// 			}
-	// 		}
-	// 		free(str);
+	Node *cur = set_cur->nodeList->next;
+	Node *pre = set_cur->nodeList; // 삭제 시 cur 위치 복구해줄 포인터
 
-	// 		// 그 후 기존 파일 삭제
-	// 		if(unlink(cur->path) == -1){
-	// 			fprintf(stderr, "%s delete error", cur->path);
-	// 			return;
-	// 		}
-	// 		else{
-	// 			del_node(list, cur->set_num, cur->idx_num); // 해당 노드 연결 리스트에서 삭제
-	// 			cur = pre->next; // 삭제했으므로 cur 위치 복구	
-	// 		}
-	// 	}
-	// 	else{ // 최근 수정 노드인 경우
-	// 		pre = cur;
-	// 		cur = cur->next;
-	// 	}
-	// 	if(cur == NULL) break; // 마지막인 경우 종료
-	// }
-	// fprintf(stdout, "All files in #%d have moved to Trash except \"%s\" (%-15s)\n\n", recent->set_num, recent->path, recent->mtime);
-	// del_onlySet(list, set_idx); // 하나만 남은 경우 제거
-	// print_list(list); // 프린트
-	// if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
+	Node *recent = get_recent(cur); // 가장 최근 시간 노드 구하기
+
+	// 세트 내에서 탐색
+	while (cur != NULL){
+		// 가장 최근 수정 노드 아니라면
+		if(cur != recent){
+			// 파일 이동을 위해 먼저 복사하기
+			char *str = malloc(sizeof(char) * PATH_SIZE);
+			sprintf(str, ".Trash/files%s", strrchr(cur->path, '/')); // trash 파일 경로 만들어주기
+			if(link(cur->path, str) == -1){
+				if(errno != EEXIST){
+					fprintf(stderr, "link error\n");
+					exit(1);
+				}
+				// 같은 이름의 파일이 존재할 경우 -> cp1, cp2, ... 이름붙여 휴지통으로 이동
+				else{
+					// int cpnum = 1;
+					// while(1){
+					// 	char str2[PATH_SIZE];
+					// 	if(strrchr(cur->path, '.') == NULL) // 확장자 없는 파일인경우
+					// 		sprintf(str2, ".Trash/files/cp%d", cpnum);
+					// 	else 
+					// 		sprintf(str2, ".Trash/files/cp%d%s", cpnum, strrchr(cur->path, '.'));
+					// 	cpnum++;
+					// 	if(!(link(cur->path, str2) == -1 && errno == EEXIST)) break; // 중복파일 있으면 다음 숫자 이름붙임
+					// }
+				}
+			}
+			free(str);
+
+			// 그 후 기존 파일 삭제
+			if(unlink(cur->path) == -1){
+				fprintf(stderr, "%s delete error", cur->path);
+				return;
+			}
+			else{
+				del_node(cur, pre);
+				cur = pre->next; // 삭제했으므로 cur 위치 복구	
+			}
+		}
+		else{ // 최근 수정 노드인 경우
+			pre = cur;
+			cur = cur->next;
+		}
+		if(cur == NULL) break; // 마지막인 경우 종료
+	}
+	fprintf(stdout, "All files in #%d have moved to Trash except \"%s\" (%-15s)\n\n", set_idx, recent->path, recent->mtime);
+
+	if(chdir(now_path) < 0){ // 현재 디렉토리로 복귀
+		fprintf(stderr, "chdir error\n");
+		exit(1);
+	}
+
+	// 하나만 남은 경우 제거
+	if(get_listLen(set_cur->nodeList) <= 1)
+		del_set(set_cur, set_pre);
+	print_set(set); // 세트 출력
+	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
 // 추가기능 : a옵션

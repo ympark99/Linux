@@ -71,7 +71,6 @@ int digest_len;
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main);
 void file2set(FILE * dt, Set *list);
 
-void option_t(int set_idx, Node *list);
 void option_a(int list_idx, Node *list); // 추가기능
 
 int scandirFilter(const struct dirent *info);
@@ -95,6 +94,7 @@ void delete(Set *set);
 void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx);
 void delete_i(Set *set, Set *set_cur, Set *set_pre);
 void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx);
+void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx);
 void del_set(Set *cur, Set *pre);
 
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
