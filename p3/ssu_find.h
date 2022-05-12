@@ -25,8 +25,8 @@
     #define OPER_LEN 5
 #endif
 
-#ifndef OPTION_LEN
-    #define OPTION_LEN 3
+#ifndef OPTDEL_LEN
+    #define OPTDEL_LEN 5
 #endif
 
 #include <openssl/md5.h>
@@ -70,8 +70,6 @@ typedef struct Queue{
 int digest_len;
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main);
 void file2set(FILE * dt, Set *list);
-void option(Node *list);
-void option_d(char *splitOper[OPTION_LEN], Node *list);
 void option_i(int set_idx, Node *list);
 void option_f(int set_idx, Node *list);
 void option_t(int set_idx, Node *list);
@@ -94,13 +92,14 @@ int search_set(Set *set, unsigned char hash[digest_len]);
 void sort_set(Set *set, int set_size);
 void swap_set(Set *set1, Set *set2);
 
+void delete(Set *set);
+void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx);
+void del_set(Set *cur, Set *pre);
 
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
 void print_list(Node *list);
 void delete_list(Node *list);
-void del_node(Node *list, int set_num, int idx_num);
-void del_onlySet(Node *list, int set_num);
-void del_onlyList(Node *list);
+void del_node(Node *cur, Node *pre);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);

@@ -17,8 +17,6 @@
 #include "ssu_help.h"
 #include "ssu_find.h"
 
-// todo : fork 제거 필요
-
 int main(){
 	while (1){
 		char *oper = malloc(sizeof(char) * BUF_SIZE);
@@ -61,10 +59,9 @@ int main(){
 					if(splitOper[i] == NULL) break;
 					split_cnt++;
 				}
-				// todo : 같은 옵션 중복 입력, -옵션 아닌 다른 문자열 입력
 
 				bool go_next = true; // 에러 있는지 확인
-				bool input_opt[4] = {false, }; // 필수 옵션 모두 입력했는지 확인 (-e, -l, -h, -d, -t)
+				int input_opt[5] = {0, }; // 필수 옵션 모두 입력했는지 확인 (-e, -l, -h, -d, -t)
 
 				// getopt로 옵션 분리 및 검사
 				while((option_opt = getopt(split_cnt, splitOper, "e:l:h:d:t:")) != -1){
@@ -78,7 +75,7 @@ int main(){
 								break;
 							}
 							strcpy(extension, optarg);
-							input_opt[0] = true;
+							input_opt[0]++;
 							break;
 						case 'l' :
 							if(strcmp(optarg, "~")){
@@ -113,7 +110,7 @@ int main(){
 									break;
 								}		
 							}
-							input_opt[1] = true;
+							input_opt[1]++;
 							break;
 						case 'h' : 
 							if(strcmp(optarg, "~")){
@@ -148,7 +145,7 @@ int main(){
 									break;
 								}
 							}						
-							input_opt[2] = true;
+							input_opt[2]++;
 							break;
 						case 'd' : 
 							// 파일경로에 ~입력시 홈디렉토리로 바꿈
@@ -174,7 +171,7 @@ int main(){
 								break;
 							}								
 							strcpy(dir_path, optarg);
-							input_opt[3] = true;
+							input_opt[3]++;
 							break;
 						case 't' : 
 							// 두자리 이상 입력한 경우 에러
@@ -189,6 +186,7 @@ int main(){
 								go_next = false;
 								break;
 							}
+							input_opt[4]++;
 							break;												
 						default :
 							fprintf(stderr, "잘못된 입력\n");
@@ -199,11 +197,16 @@ int main(){
 				optind = 0; // optind 초기화
 
 				// 필수 입력 옵션 확인
-				for(int i = 0; i < 4; i++){
-					if(!input_opt[i]){
+				for(int i = 0; i < 5; i++){
+					if(i < 4 && input_opt[i] == 0){
 						fprintf(stderr, "필수 옵션 입력 x\n");
 						go_next = false;
 						break;
+					}
+					else if(input_opt[i] > 1){
+						fprintf(stderr, "옵션 중복 입력\n");
+						go_next = false;
+						break;						
 					}
 				}
 
@@ -224,11 +227,10 @@ int main(){
 
 					struct timeval start;
 					gettimeofday(&start, NULL);
-					// todo : md5, sha1 구분
 					!strcmp(splitOper[0], "fmd5") ?
-					ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true)
-					:
-					ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true);
+						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true)
+						:
+						ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true);
 					delete_set(head); // 세트 제거
 				}
 			}
