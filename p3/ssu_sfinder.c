@@ -174,6 +174,7 @@ int main(){
 							input_opt[3]++;
 							break;
 						case 't' : 
+							// todo : 쓰레드 시간 측정
 							// 두자리 이상 입력한 경우 에러
 							if(strlen(optarg) != 1){
 								fprintf(stderr, "잘못된 쓰레드 개수 입력\n");

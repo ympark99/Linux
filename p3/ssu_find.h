@@ -100,7 +100,7 @@ void del_set(Set *cur, Set *pre);
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
 void print_list(Node *list);
 void delete_list(Node *list);
-void del_node(Node *cur, Node *pre);
+void del_node(Node *cur, Node *pre, int log_type);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);

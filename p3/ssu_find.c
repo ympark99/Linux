@@ -431,7 +431,7 @@ void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx){
 	else{
 		fprintf(stdout, "\"%s\" has been deleted in #%d\n\n", list_cur->path, set_idx);
 
-		del_node(list_cur, list_pre); // 해당 노드 연결 리스트에서 삭제
+		del_node(list_cur, list_pre, 1); // 해당 노드 연결 리스트에서 삭제
 
 		// 하나만 남은 경우 제거
 		if(get_listLen(set_cur->nodeList) <= 1)
@@ -466,7 +466,7 @@ void delete_i(Set *set, Set *set_cur, Set *set_pre){
 				return;
 			}
 			else{
-				del_node(cur, pre); // 해당 노드 삭제
+				del_node(cur, pre, 1); // 해당 노드 삭제
 				cur = pre->next; // 삭제했으므로 cur 위치 복구
 			}
 		}
@@ -508,7 +508,7 @@ void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 				return;
 			}
 			else{
-				del_node(cur, pre);
+				del_node(cur, pre, 1);
 				cur = pre->next; // 삭제했으므로 cur 위치 복구	
 			}		
 		}
@@ -529,7 +529,7 @@ void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 
 // t옵션
 void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
-	struct passwd *pwd;
+	struct passwd *pwd; // 사용자 이름
 	if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
 		fprintf(stderr, "user id error");
 	}
@@ -596,7 +596,7 @@ void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 				return;
 			}
 			else{
-				del_node(cur, pre);
+				del_node(cur, pre, 0);
 				cur = pre->next; // 삭제했으므로 cur 위치 복구	
 			}
 		}
@@ -847,8 +847,9 @@ int get_listLen(Node *list){
 // 세트 출력
 void print_set(Set *set){
 	Set *set_cur = set->next;
-	int set_idx = 1;	
+	int set_idx = 1;
 
+	// 세트 출력
 	while (set_cur != NULL){
 		Node *node_cur = set_cur->nodeList->next;
 		int i = 1;
@@ -925,7 +926,7 @@ void init_queue(queue *q){
 }
 
 // 특정 세트 삭제
-void del_set(Set *cur, Set *pre){	
+void del_set(Set *cur, Set *pre){
 	// 해당 인덱스 삭제
 	if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
 		pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
@@ -941,20 +942,62 @@ void del_set(Set *cur, Set *pre){
 }
 
 // 특정 노드 삭제
-void del_node(Node *cur, Node *pre){
+// log_type : 0 -> REMOVE, 1 -> DELETE, 2 -> RESTORE
+void del_node(Node *cur, Node *pre, int log_type){
+	struct passwd *pwd; // 사용자 이름
+	// 로그 기록
+	if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
+		fprintf(stderr, "user id error");
+	}
+	char log_dir[BUF_SIZE]; // 제거된 파일 경로
+	strcpy(log_dir, pwd->pw_dir);
+	strcat(log_dir, "/.duplicate_20182615.log");
+	FILE *fp;
+	if((fp = fopen(log_dir, "a+")) == NULL){ // a+모드 실행 (계속 쓰기 위해)
+		fprintf(stderr, "fopen error\n");
+	}
+
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+	char *time_str = malloc(sizeof(char) * BUF_SIZE);
+	strcpy(time_str, get_time(t, time_str)); // 현재 시간 포맷화
+
+	// 타입에 따른 로그 기록
+	switch (log_type){
+		case 0 :
+			fputs("[REMOVE]", fp);
+			break;
+		case 1 : 
+			fputs("[DELETE]", fp);
+			break;	
+		case 2 : 
+			fputs("[RESTORE]", fp);
+			break;						
+		default:
+			break;
+	}
+
+	fputs(" ", fp);
+	fputs(cur->path, fp);
+	fputs(" ", fp);
+	fputs(time_str, fp);
+	fputs(" ", fp);
+	fputs(pwd->pw_name, fp);
+	fputs("\n", fp); // enter
+	
+	free(time_str);
+
 	// 해당 인덱스 삭제
 	if(cur->next != NULL){ // 중간 인덱스 삭제할 경우
 		pre->next = cur->next; // 이전 노드의 다음 -> 삭제할 노드의 다음
 		free(cur);
-		return;
 	}
 	else{ // 마지막 인덱스 삭제할 경우
 		pre->next = NULL;
 		cur->next = NULL;
 		free(cur);
-		// cur == NULL?
-		return;
 	}
+	fclose(fp);
 }
 
 // 해시 일치할경우 인덱스 반환
