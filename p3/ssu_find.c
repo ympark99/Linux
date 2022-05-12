@@ -400,7 +400,7 @@ void delete(Set *set){
 						delete_i(set, set_cur, set_pre);
 						break;
 					case 3: // f옵션
-						printf("option f\n");
+						delete_f(set, set_cur, set_pre, set_idx);
 						break;
 					case 4: // t옵션
 						printf("option t\n");
@@ -490,47 +490,40 @@ void delete_i(Set *set, Set *set_cur, Set *set_pre){
 	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
-// f옵션
-void option_f(int set_idx, Node *list){
-	// Node *cur = list->next;
-	// Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
+// 삭제 f옵션
+void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx){
+	Node *cur = set_cur->nodeList->next;
+	Node *pre = set_cur->nodeList; // 삭제 시 cur 위치 복구해줄 포인터
 
-	// // 세트 같을때까지 탐색
-	// while (cur->set_num != set_idx){
-	// 	if(cur->next == NULL){
-	// 		fprintf(stderr, "세트 범위 벗어남\n");
-	// 		return;
-	// 	}
-	// 	pre = cur;
-	// 	cur = cur->next;
-	// }
+	Node *recent = get_recent(cur); // 가장 최근 시간 노드 구하기
 
-	// Node *recent = get_recent(set_idx, cur); // 가장 최근 시간 노드 구하기
+	// 세트 내에서 탐색
+	while (cur != NULL){
+		// 가장 최근 수정 노드 아니라면
+		if(cur != recent){
+			//파일 삭제
+			if(unlink(cur->path) == -1){
+				fprintf(stderr, "%s delete error", cur->path);
+				return;
+			}
+			else{
+				del_node(cur, pre);
+				cur = pre->next; // 삭제했으므로 cur 위치 복구	
+			}		
+		}
+		else{ // 최근 수정 노드인 경우
+			pre = cur;
+			cur = cur->next;
+		}
+		if(cur == NULL) break; // 마지막인 경우 종료
+	}
+	fprintf(stdout, "Left file in #%d : %s (%-15s)\n\n", set_idx, recent->path, recent->mtime);
 
-	// // 세트 내에서 탐색
-	// while (cur->set_num == set_idx){
-	// 	// 가장 최근 수정 노드 아니라면
-	// 	if(cur != recent){
-	// 		//파일 삭제
-	// 		if(unlink(cur->path) == -1){
-	// 			fprintf(stderr, "%s delete error", cur->path);
-	// 			return;
-	// 		}
-	// 		else{
-	// 			del_node(list, cur->set_num, cur->idx_num); // 해당 노드 연결 리스트에서 삭제
-	// 			cur = pre->next; // 삭제했으므로 cur 위치 복구	
-	// 		}		
-	// 	}
-	// 	else{ // 최근 수정 노드인 경우
-	// 		pre = cur;
-	// 		cur = cur->next;
-	// 	}
-	// 	if(cur == NULL) break; // 마지막인 경우 종료
-	// }
-	// fprintf(stdout, "Left file in #%d : %s (%-15s)\n\n", recent->set_num, recent->path, recent->mtime);
-	// del_onlySet(list, set_idx); // 하나만 남은 경우 제거
-	// print_list(list); // 프린트
-	// if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
+	// 하나만 남은 경우 제거
+	if(get_listLen(set_cur->nodeList) <= 1)
+		del_set(set_cur, set_pre);
+	print_set(set); // 세트 출력
+	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
 // t옵션
@@ -1050,7 +1043,7 @@ void swap_node(Node *node1, Node *node2){
 }
 
 // 가장 최근 시간 노드 구하기
-Node *get_recent(int set_idx, Node *cur){
+Node *get_recent(Node *cur){
 	Node *recent;
 
 	// 파일 정보 조회
@@ -1058,7 +1051,7 @@ Node *get_recent(int set_idx, Node *cur){
 	time_t recent_time = -9999999;
 
 	// 세트 내에서 탐색
-	while (cur->set_num == set_idx){
+	while (cur != NULL){
 		// 파일 정보 얻기
 		if(lstat(cur->path, &st) == -1){
 			fprintf(stderr, "stat error\n");

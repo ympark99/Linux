@@ -70,7 +70,7 @@ typedef struct Queue{
 int digest_len;
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main);
 void file2set(FILE * dt, Set *list);
-void option_f(int set_idx, Node *list);
+
 void option_t(int set_idx, Node *list);
 void option_a(int list_idx, Node *list); // 추가기능
 
@@ -94,6 +94,7 @@ void swap_set(Set *set1, Set *set2);
 void delete(Set *set);
 void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx);
 void delete_i(Set *set, Set *set_cur, Set *set_pre);
+void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx);
 void del_set(Set *cur, Set *pre);
 
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
@@ -103,7 +104,7 @@ void del_node(Node *cur, Node *pre);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]);
 void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
-Node *get_recent(int set_idx, Node *cur);
+Node *get_recent(Node *cur);
 
 void init_queue(queue *q);
 bool isEmpty_queue(queue *q);
