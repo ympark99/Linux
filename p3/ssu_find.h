@@ -104,7 +104,7 @@ void append_set(Set *set, long long filesize, char *path, char *mtime, char *ati
 void delete_set(Set *set);
 void print_set(Set *set);
 int search_set(Set *set, unsigned char hash[digest_len]);
-void sort_set(Set *set, int set_size);
+void sort_upSet(Set *set, int set_size);
 void swap_set(Set *set1, Set *set2);
 
 void delete(Set *set);
@@ -132,4 +132,5 @@ void ssu_help();
 
 void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up);
 
+void sort_downSet(Set *set, int set_size);
 #endif

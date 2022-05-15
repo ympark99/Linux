@@ -2,6 +2,9 @@
 #include "ssu_find.h"
 
 int main(){
+	// 링크드리스트 head 선언
+	Set *head = malloc(sizeof(Set));
+	head->next = NULL;
 	while (1){
 		char *oper = malloc(sizeof(char) * BUF_SIZE);
 		fprintf(stdout, "20182615> "); // 프롬프트 출력
@@ -26,9 +29,6 @@ int main(){
 		// 큐 선언
 		queue q;
 		init_queue(&q);
-		// 링크드리스트 head 선언
-		Set *head = malloc(sizeof(Set));
-		head->next = NULL;
 
 		// fmd5 or fsha1 명령 시
 		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){
@@ -210,6 +210,11 @@ int main(){
 						exit(1);
 					}
 
+					delete_set(head); // 기존 세트 제거
+					// 링크드리스트 head 선언
+					Set *head = malloc(sizeof(Set));
+					head->next = NULL;
+
 					struct timeval start;
 					gettimeofday(&start, NULL);
 					!strcmp(splitOper[0], "fmd5") ?
@@ -315,10 +320,9 @@ int main(){
 		else if(splitOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
 				ssu_help();
 		}
-		delete_set(head); // 세트 제거
 		free(oper);
 	}
-
+	delete_set(head); // 세트 제거
 	fprintf(stdout, "Prompt End\n");
 	exit(0);
 }

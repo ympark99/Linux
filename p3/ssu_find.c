@@ -163,7 +163,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	}
 
 	// 파일크기 오름차순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
-	sort_set(set, set_size);
+	sort_upSet(set, set_size);
 	print_set(set); // 세트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
 	delete(set);
@@ -1015,9 +1015,9 @@ int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]){
     return -1;
 }
 
-// 세트 버블정렬
+// 세트 버블정렬(오름차순)
 // 파일크기순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
-void sort_set(Set *set, int set_size){
+void sort_upSet(Set *set, int set_size){
     Set *cur = set->next; // head 다음
     for (int i = 0; i < set_size; i++){
         if(cur->next == NULL) break;
