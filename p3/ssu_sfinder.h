@@ -9,6 +9,10 @@
     #define OPER_LEN 11
 #endif
 
+#ifndef LIST_LEN
+    #define LIST_LEN 7
+#endif
+
 int check_fileOrDir(char *path);
 
 #endif

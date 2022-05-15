@@ -39,6 +39,13 @@ int main(){
 			ptr = strtok(NULL, " ");
 		}
 
+		// 큐 선언
+		queue q;
+		init_queue(&q);
+		// 링크드리스트 head 선언
+		Set *head = malloc(sizeof(Set));
+		head->next = NULL;
+
 		// fmd5 or fsha1 명령 시
 		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){
 			// 명령어 인자 틀리면 에러 처리
@@ -212,13 +219,6 @@ int main(){
 				}
 
 				if(go_next){
-					// 큐 선언
-					queue q;
-					init_queue(&q);
-					// 링크드리스트 head 선언
-					Set *head = malloc(sizeof(Set));
-					head->next = NULL;
-
 					// 찾은 파일 저장해둘 fp선언
 					FILE *dt = fopen(".writeReadData.txt", "w+");
 					if(dt == NULL){
@@ -232,8 +232,92 @@ int main(){
 						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true)
 						:
 						ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true);
-					delete_set(head); // 세트 제거
 				}
+			}
+		}
+		// list 명령 시
+		else if(splitOper[0] != NULL && !strcmp(splitOper[0], "list")){
+			// 명령어 인자 틀리면 에러 처리 (idx개수 1,3,5,7 만 가능)
+			if((idx > LIST_LEN) || ((idx % 2) != 1))
+				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
+			else{
+				int option_opt;
+				int split_cnt = 0; // 실제 입력한 카운트 계산
+
+				for(int i = 0; i < OPER_LEN; i++){
+					if(splitOper[i] == NULL) break;
+					split_cnt++;
+				}
+				bool go_next = true; // 에러 있는지 확인
+				bool sort_set = false; // 파일 세트를 정렬하는지 결정
+				bool c_opt[5] = {false, true, false, false, false }; // c 옵션 카테고리(filename, size, uid, gid, mode)
+				bool sort_up = true; // 오름차순 정렬할지 결정
+				int input_opt[3] = {0, }; // 옵션 중복 입력 (-l, -c, -o)
+
+				// getopt로 옵션 분리 및 검사
+				while((option_opt = getopt(split_cnt, splitOper, "l:c:o:")) != -1){
+					if(!go_next) break;
+					switch(option_opt){
+						case 'l' :
+							if(optarg == NULL) sort_set = true;
+							else if(!strcmp(optarg, "fileset"))
+								sort_set = true;
+							else if(!strcmp(optarg, "filelist"))
+								sort_set = false;
+							else{
+								fprintf(stderr, "l 옵션 입력 에러\n");
+								go_next = false;
+								break;
+							}
+							input_opt[0]++;				
+							break;
+						case 'c' :					
+							if(optarg == NULL) c_opt[1] = true;
+							else if(!strcmp(optarg, "filename")) c_opt[0] = true;
+							else if(!strcmp(optarg, "size")) c_opt[1] = true;
+							else if(!strcmp(optarg, "uid")) c_opt[2] = true;
+							else if(!strcmp(optarg, "gid")) c_opt[3] = true;
+							else if(!strcmp(optarg, "mode")) c_opt[4] = true;																		
+							else{
+								fprintf(stderr, "c 옵션 입력 에러\n");
+								go_next = false;
+								break;
+							}				
+							input_opt[1]++;
+							break;
+						case 'o' :						
+							if(optarg == NULL) sort_up = true;
+							else if(!strcmp(optarg, "1")) sort_up = true;
+							else if(!strcmp(optarg, "-1")) sort_up = false;
+							else{
+								fprintf(stderr, "o 옵션 입력 에러\n");
+								go_next = false;
+								break;
+							}
+							input_opt[2]++;
+							break;
+						default :
+							fprintf(stderr, "잘못된 입력\n");
+							go_next = false;
+							break;	
+					}
+				}
+				optind = 0; // optind 초기화
+
+				// 필수 입력 옵션 확인
+				for(int i = 0; i < 3; i++){
+					if(input_opt[i] > 1){
+						fprintf(stderr, "옵션 중복 입력\n");
+						go_next = false;
+						break;						
+					}
+				}
+
+				if(go_next){
+					// list 함수 수행
+				}				
+
+
 			}
 		}
 		// exit 입력 시 종료
@@ -246,6 +330,7 @@ int main(){
 		else if(splitOper[0] != NULL){ // 엔터키 입력 아닌 경우 명령어 사용법 출력
 				ssu_help();
 		}
+		delete_set(head); // 세트 제거
 		free(oper);
 	}
 
