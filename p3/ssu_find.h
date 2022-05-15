@@ -29,8 +29,25 @@
     #define OPTDEL_LEN 5
 #endif
 
+#include <stdio.h>
+#include <sys/types.h> // stat 사용
+#include <sys/stat.h> // stat 사용
+#include <sys/wait.h>
+#include <unistd.h> // stat 사용
+#include <fcntl.h>
+#include <string.h> // string 관련 함수 사용
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+#include <dirent.h> // scandir 사용
+#include <math.h> // modf 사용
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#include <sys/time.h> // gettimeofday 사용
+#include <errno.h>
+#include <pwd.h>
+#include <ctype.h>
+
 
 // 세트 당 파일리스트
 typedef struct Nodes{
@@ -110,5 +127,9 @@ void init_queue(queue *q);
 bool isEmpty_queue(queue *q);
 void push_queue(queue *q, char path[BUF_SIZE]);
 char *pop_queue(queue *q);
+
+void ssu_help();
+
+void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up);
 
 #endif

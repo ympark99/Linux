@@ -1,20 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <dirent.h> // scandir 사용
-#include <ctype.h>
-#include <stdbool.h>
-#include <openssl/md5.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <math.h>
 #include "ssu_sfinder.h"
-#include "ssu_help.h"
 #include "ssu_find.h"
 
 int main(){
@@ -315,6 +299,7 @@ int main(){
 
 				if(go_next){
 					// list 함수 수행
+					list(head, sort_set, c_opt, sort_up);
 				}				
 
 

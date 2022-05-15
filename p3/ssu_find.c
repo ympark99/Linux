@@ -1,20 +1,3 @@
-#include <stdio.h>
-#include <sys/types.h> // stat 사용
-#include <sys/stat.h> // stat 사용
-#include <sys/time.h>
-#include <unistd.h> // stat 사용
-#include <fcntl.h>
-#include <string.h> // string 관련 함수 사용
-#include <stdlib.h>
-#include <stdbool.h>
-#include <time.h>
-#include <dirent.h> // scandir 사용
-#include <math.h> // modf 사용
-#include <openssl/md5.h>
-#include <openssl/sha.h>
-#include <sys/time.h> // gettimeofday 사용
-#include <errno.h>
-#include <pwd.h>
 #include "ssu_find.h"
 // todo : node에서 filesize/hash 제거 , 옵션
 

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "ssu_help.h"
+#include "ssu_find.h"
 
 void ssu_help(){
 	printf("Usage:\n");
