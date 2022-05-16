@@ -13,6 +13,10 @@
     #define LIST_LEN 7
 #endif
 
+#ifndef TRASH_LEN
+    #define TRASH_LEN 5
+#endif
+
 int check_fileOrDir(char *path);
 
 #endif

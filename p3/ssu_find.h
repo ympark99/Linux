@@ -82,6 +82,19 @@ typedef struct Queue{
 	int cnt; // 큐 안의 노드 개수
 }queue;
 
+// 쓰레기통 관리 링크드리스트
+typedef struct Trash{
+	struct Nodes *next; // 다음 주소
+	long long filesize; // 파일 크기(byte)
+	char path[PATH_SIZE]; // 파일 경로
+	char mtime[BUF_SIZE]; // mtime
+	char atime[BUF_SIZE]; // atime
+	unsigned char hash[BUF_SIZE]; // hash value
+	int uid; // 사용자 ID
+	int gid; // 그룹 ID
+	unsigned long mode; // 모드
+}Trash;
+
 int digest_len;
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main);
 void file2set(FILE * dt, Set *list);
@@ -114,7 +127,6 @@ void del_set(Set *cur, Set *pre);
 
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
 void print_list(Node *list);
-void delete_list(Node *list);
 void del_node(Node *cur, Node *pre, int log_type);
 int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]);
 void sort_list(Node *list, int list_size);
@@ -135,4 +147,6 @@ void sort_downSet(Set *set, int set_size);
 void sort_pathReverse(Node *list, int list_size);
 void sort_idUpList(Node *list, int list_size, int sortWhat);
 void sort_idDownList(Node *list, int list_size, int sortWhat);
+
+// trash
 #endif

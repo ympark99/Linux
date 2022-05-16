@@ -517,8 +517,9 @@ void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 		fprintf(stderr, "user id error");
 	}
 	char trash_dir[BUF_SIZE]; // 제거된 파일 경로
+	char trashinfo_dir[BUF_SIZE]; // 제거된 파일 정보 경로
 	strcpy(trash_dir, pwd->pw_dir);
-	//todo : 제거된 파일 정보 경로 만들기
+	strcpy(trashinfo_dir, pwd->pw_dir);
 
 	char now_path[BUF_SIZE];
 	getcwd(now_path, BUF_SIZE); // 현재 디렉토리 경로 얻기
@@ -529,16 +530,24 @@ void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 	}
 
 	strcat(trash_dir, "/.Trash");
+	strcat(trashinfo_dir, "/.Trash");
 	// 휴지통 경로 생성 (이미 존재한 경우는 에러x)
 	if(mkdir(trash_dir, 0776) == -1 && errno != EEXIST){ 
 		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
 		exit(1);
 	}
+	// files 폴더 생성
 	strcat(trash_dir, "/files");
 	if(mkdir(trash_dir, 0776) == -1 && errno != EEXIST){ 
 		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
 		exit(1);
-	}	
+	}
+	// info 폴더 생성
+	strcat(trashinfo_dir, "/info");
+	if(mkdir(trashinfo_dir, 0776) == -1 && errno != EEXIST){ 
+		fprintf(stderr, "directory create error: %s\n", strerror(errno)); 
+		exit(1);
+	}
 
 	Node *cur = set_cur->nodeList->next;
 	Node *pre = set_cur->nodeList; // 삭제 시 cur 위치 복구해줄 포인터
@@ -579,6 +588,53 @@ void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 				return;
 			}
 			else{
+				FILE *fp;
+				if((fp = fopen(".Trash/info/info.txt", "a+")) == NULL){ // a+모드 실행 (계속 쓰기 위해)
+					fprintf(stderr, "fopen error\n");
+				}	
+				// info.txt에 삭제 파일 정보 저장
+				if(fp != NULL){
+					fputs("*", fp); // 체크 여부, **이면 복구된 파일
+					fputs("|", fp);
+	
+					time_t t = time(NULL);
+					struct tm *tm = localtime(&t);
+					char *time_str = malloc(sizeof(char) * BUF_SIZE);
+					strftime(time_str, BUF_SIZE, "%Y-%m-%d", tm);
+					fputs(time_str, fp); // 날짜
+					fputs("|", fp);
+					free(time_str);
+
+					char *time_str2 = malloc(sizeof(char) * BUF_SIZE);
+					strftime(time_str, BUF_SIZE, "%H:%M:%S", tm);
+					fputs(time_str2, fp); // 시간
+					fputs("|", fp);
+					free(time_str2);
+
+					char to_str[BUF_SIZE];
+					sprintf(to_str, "%lld", cur->filesize);
+					fputs(to_str, fp); // 파일 크기
+					fputs("|", fp);
+					fputs(cur->path, fp); // 파일 절대경로
+					fputs("|", fp);
+					fputs(cur->mtime, fp); // mtime
+					fputs("|", fp);
+					fputs(cur->atime, fp); // atime
+					fputs("|", fp);
+					fputs(cur->hash, fp); // hash
+					fputs("|", fp);
+					sprintf(to_str, "%d", cur->uid); // uid
+					fputs(to_str, fp);
+					fputs("|", fp);
+					sprintf(to_str, "%d", cur->gid); // gid
+					fputs(to_str, fp);
+					fputs("|", fp);
+					sprintf(to_str, "%lu", cur->mode); // mode
+					fputs(to_str, fp);
+					fputs("|", fp);		
+					fputs("\n", fp); // enter
+				}
+				fclose(fp);
 				del_node(cur, pre, 0);
 				cur = pre->next; // 삭제했으므로 cur 위치 복구	
 			}
@@ -884,17 +940,6 @@ void print_list(Node *list){
 void delete_set(Set *set){
 	Set *cur = set;
 	Set *next;
-	while (cur != NULL){
-		next = cur->next;
-		free(cur);
-		cur = next;
-	}	
-}
-
-// 메모리 해제
-void delete_list(Node *list){
-	Node *cur = list;
-	Node *next;
 	while (cur != NULL){
 		next = cur->next;
 		free(cur);

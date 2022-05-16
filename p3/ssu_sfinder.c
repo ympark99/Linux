@@ -1,6 +1,6 @@
 #include "ssu_sfinder.h"
 #include "ssu_find.h"
-
+// todo : 옵션 입력 에러처리 ex : list list list
 int main(){
 	// 링크드리스트 head 선언
 	Set *head = malloc(sizeof(Set));
@@ -233,7 +233,7 @@ int main(){
 				int option_opt;
 				int split_cnt = 0; // 실제 입력한 카운트 계산
 
-				for(int i = 0; i < OPER_LEN; i++){
+				for(int i = 0; i < LIST_LEN; i++){
 					if(splitOper[i] == NULL) break;
 					split_cnt++;
 				}
@@ -311,6 +311,78 @@ int main(){
 				}				
 
 
+			}
+		}
+		// trash 명령 시
+		else if(splitOper[0] != NULL && !strcmp(splitOper[0], "trash")){
+			// 명령어 인자 틀리면 에러 처리 (idx개수 1,3,5,7 만 가능)
+			if((idx > TRASH_LEN) || ((idx % 2) != 1))
+				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
+			else{
+				int option_opt;
+				int split_cnt = 0; // 실제 입력한 카운트 계산
+
+				for(int i = 0; i < TRASH_LEN; i++){
+					if(splitOper[i] == NULL) break;
+					split_cnt++;
+				}
+				bool go_next = true; // 에러 있는지 확인
+				bool c_opt[5] = {true, false, false, false, false }; // c 옵션 카테고리(파일 이름, filename, size, date, time)
+				bool sort_up = true; // 오름차순 정렬할지 결정
+				int input_opt[2] = {0, }; // 옵션 중복 입력 (-c, -o)
+
+				// getopt로 옵션 분리 및 검사
+				while((option_opt = getopt(split_cnt, splitOper, "c:o:")) != -1){
+					if(!go_next) break;
+					switch(option_opt){
+						case 'c' :					
+							if(optarg == NULL) c_opt[1] = true;
+							else{							
+								if(!strcmp(optarg, "filename")) c_opt[1] = true;
+								else if(!strcmp(optarg, "size")) c_opt[2] = true;
+								else if(!strcmp(optarg, "date")) c_opt[3] = true;
+								else if(!strcmp(optarg, "time")) c_opt[4] = true;																
+								else{
+									fprintf(stderr, "c 옵션 입력 에러\n");
+									go_next = false;
+									break;
+								}				
+								c_opt[0] = false;	
+							}
+							input_opt[0]++;
+							break;
+						case 'o' :						
+							if(optarg == NULL) sort_up = true;
+							else if(!strcmp(optarg, "1")) sort_up = true;
+							else if(!strcmp(optarg, "-1")) sort_up = false;
+							else{
+								fprintf(stderr, "o 옵션 입력 에러\n");
+								go_next = false;
+								break;
+							}
+							input_opt[1]++;
+							break;
+						default :
+							fprintf(stderr, "잘못된 입력\n");
+							go_next = false;
+							break;	
+					}
+				}
+				optind = 0; // optind 초기화
+
+				// 필수 입력 옵션 확인
+				for(int i = 0; i < 2; i++){
+					if(input_opt[i] > 1){
+						fprintf(stderr, "옵션 중복 입력\n");
+						go_next = false;
+						break;						
+					}
+				}
+
+				if(go_next){
+					// trash 함수 수행
+
+				}
 			}
 		}
 		// exit 입력 시 종료
