@@ -1,9 +1,17 @@
 #include "ssu_find.h"
 
 void trash(Trash *tr, bool c_opt[5], bool sort_up){
-    file2tr(tr);
+    file2tr(tr); // trash 링크드 리스트 제작
 
-    // todo : 정렬
+    // 파일 크기 순 정렬일 경우 그대로 출력 -> 리스트는 크기 같으므로 경로 순 출력
+    if(c_opt[2]){
+		int trash_size = get_trashLen(tr);
+
+        if(sort_up) sort_sizeTrash(tr, trash_size, true); // 오름차순
+        else sort_sizeTrash(tr, trash_size, false); // 내림차순
+    }
+
+    // todo : 정렬 나머지
     print_trash(tr);
 }
 
@@ -86,9 +94,83 @@ void print_trash(Trash *tr){
 	int set_idx = 1;
     fprintf(stdout, "     FILENAME                                                        SIZE      DELETION DATE       DELETION TIME\n");
 	while (cur != NULL){
-        fprintf(stdout, "[ %d] ", set_idx++);
+		if(set_idx < 10) fprintf(stdout, "[ %d] ", set_idx++);
+		else fprintf(stdout, "[%d] ", set_idx++);
 		fprintf(stdout, "%-64s%-10s%-20s%-8s\n", cur->path, size2comma(cur->filesize), cur->delete_date, cur->delete_time);
 
 		cur = cur->next;
 	}
+}
+
+// 쓰레기통 파일크기순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
+void sort_sizeTrash(Trash *tr, int tr_size, bool sort_up){
+    Trash *cur = tr->next; // head 다음
+    for (int i = 0; i < tr_size; i++){
+        if(cur->next == NULL) break;
+        for (int j = 0; j < tr_size - 1 - i; j++){
+            if(cur->filesize > cur->next->filesize && sort_up)
+                swap_trash(cur, cur->next); // swap
+            else if(cur->filesize < cur->next->filesize && !sort_up)
+                swap_trash(cur, cur->next); // swap
+            cur = cur->next;
+        }
+        cur = tr->next;
+    }
+}
+
+// 리스트 크기 구하기
+int get_trashLen(Trash *tr){
+    int cnt = 0; // head 제외
+    Trash *cur = tr->next;
+    while(cur != NULL){
+        cnt++;
+        cur = cur->next;
+    }
+    return cnt;
+}
+
+void swap_trash(Trash *tr1, Trash *tr2){
+    long long fileSize;
+	char delete_date[DELTIME_LEN]; // 삭제 날짜
+	char delete_time[DELTIME_LEN]; // 삭제 시간
+	char path[BUF_SIZE];
+	char mtime[BUF_SIZE];
+	char atime[BUF_SIZE];
+	unsigned char hash[BUF_SIZE];
+	int uid;
+	int gid;
+	unsigned long mode;
+
+	fileSize = tr1->filesize;
+	strcpy(delete_date, tr1->delete_date);
+	strcpy(delete_time, tr1->delete_time);
+	strcpy(path, tr1->path);
+	strcpy(mtime, tr1->mtime);
+	strcpy(atime, tr1->atime);
+	strcpy(hash, tr1->hash);
+	uid = tr1->uid;
+	gid = tr1->gid;
+	mode = tr1->mode;
+
+    tr1->filesize = tr2->filesize;
+	strcpy(tr1->delete_date, tr2->delete_date);
+	strcpy(tr1->delete_time, tr2->delete_time);
+	strcpy(tr1->path, tr2->path);
+	strcpy(tr1->mtime, tr2->mtime);
+	strcpy(tr1->atime, tr2->atime);
+	strcpy(tr1->hash, tr2->hash);
+	tr1->uid = tr2->uid;
+	tr1->gid = tr2->gid;
+	tr1->mode = tr2->mode;
+
+    tr2->filesize = fileSize;
+	strcpy(tr2->delete_date, delete_date);
+	strcpy(tr2->delete_time, delete_time);
+	strcpy(tr2->path, path);
+	strcpy(tr2->mtime, mtime);
+	strcpy(tr2->atime, atime);
+	strcpy(tr2->hash, hash);
+	tr2->uid = uid;
+	tr2->gid = gid;
+	tr2->mode = mode;
 }

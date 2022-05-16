@@ -1109,7 +1109,7 @@ void swap_set(Set *set1, Set *set2){
 }
 
 void swap_node(Node *node1, Node *node2){
-    int fileSize;
+    long long fileSize;
 	char path[BUF_SIZE];
 	char mtime[BUF_SIZE];
 	char atime[BUF_SIZE];

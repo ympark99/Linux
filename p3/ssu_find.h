@@ -115,7 +115,7 @@ int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
 char *get_sha1(FILE *fp);
-char* get_time(time_t stime, char * str);
+char *get_time(time_t stime, char * str);
 void get_searchtime(struct timeval start, struct timeval end);
 int get_setLen(Set *set);
 int get_listLen(Node *list);
@@ -164,4 +164,7 @@ void file2tr(Trash *tr);
 void delete_trash(Trash *tr);
 void append_trash(Trash *tr, char *splitFile[TRASHDATA_SIZE]);
 void print_trash(Trash *tr);
+int get_trashLen(Trash *tr);
+void sort_sizeTrash(Trash *tr, int tr_size, bool sort_up);
+void swap_trash(Trash *tr1, Trash *tr2);
 #endif
