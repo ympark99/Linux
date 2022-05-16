@@ -60,8 +60,6 @@ typedef struct Nodes{
 	int uid; // 사용자 ID
 	int gid; // 그룹 ID
 	unsigned long mode; // 모드
-	int set_num; // 현재 세트 번호
-	int idx_num; // 세트 내 인덱스 번호
 }Node;
 
 // 중복 세트
@@ -132,5 +130,7 @@ void ssu_help();
 
 void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up);
 
+// ssu_list.c
 void sort_downSet(Set *set, int set_size);
+void sort_pathReverse(Node *list, int list_size);
 #endif

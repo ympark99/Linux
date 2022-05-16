@@ -852,32 +852,32 @@ void print_set(Set *set){
 
 // 리스트 전체 데이터 출력 and 라벨링
 void print_list(Node *list){
-	Node *cur = list->next;
-	int cnt = 0;
-	int small_cnt = 1;
-	unsigned char pre_hash[BUF_SIZE] = "";
-	while (cur != NULL){
-		// 해시값이 다르면 다른 리스트출력
-		if(strcmp(pre_hash, cur->hash)){
-			cnt++;
-			small_cnt = 1;
+	// Node *cur = list->next;
+	// int cnt = 0;
+	// int small_cnt = 1;
+	// unsigned char pre_hash[BUF_SIZE] = "";
+	// while (cur != NULL){
+	// 	// 해시값이 다르면 다른 리스트출력
+	// 	if(strcmp(pre_hash, cur->hash)){
+	// 		cnt++;
+	// 		small_cnt = 1;
 
-			if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
+	// 		if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
 
-			fprintf(stdout, "---- Identical files #%d (%s bytes - ", cnt, size2comma(cur->filesize));
-			fprintf(stdout, "%s", cur->hash);
-			fprintf(stdout, ") ----\n");
+	// 		fprintf(stdout, "---- Identical files #%d (%s bytes - ", cnt, size2comma(cur->filesize));
+	// 		fprintf(stdout, "%s", cur->hash);
+	// 		fprintf(stdout, ") ----\n");
 			
-			strcpy(pre_hash, cur->hash);
-		}
-		cur->set_num = cnt; // 현재 세트 번호 저장
-		cur->idx_num = small_cnt; // 세트 내 인덱스 번호 저장
+	// 		strcpy(pre_hash, cur->hash);
+	// 	}
+	// 	cur->set_num = cnt; // 현재 세트 번호 저장
+	// 	cur->idx_num = small_cnt; // 세트 내 인덱스 번호 저장
 
-		fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", small_cnt, cur->path, cur->mtime, cur->atime);
-		small_cnt++;
+	// 	fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", small_cnt, cur->path, cur->mtime, cur->atime);
+	// 	small_cnt++;
 
-		cur = cur->next;
-	}
+	// 	cur = cur->next;
+	// }
 }
 
 // 메모리 해제
@@ -1069,24 +1069,36 @@ void swap_node(Node *node1, Node *node2){
 	char mtime[BUF_SIZE];
 	char atime[BUF_SIZE];
 	unsigned char hash[BUF_SIZE];
+	int uid;
+	int gid;
+	unsigned long mode;
 
 	fileSize = node1->filesize;
 	strcpy(path, node1->path);
 	strcpy(mtime, node1->mtime);
 	strcpy(atime, node1->atime);
 	strcpy(hash, node1->hash);
+	uid = node1->uid;
+	gid = node1->gid;
+	mode = node1->mode;
 
     node1->filesize = node2->filesize;
 	strcpy(node1->path, node2->path);
 	strcpy(node1->mtime, node2->mtime);
 	strcpy(node1->atime, node2->atime);
 	strcpy(node1->hash, node2->hash);
+	node1->uid = node2->uid;
+	node1->gid = node2->gid;
+	node1->mode = node2->mode;
 
     node2->filesize = fileSize;
 	strcpy(node2->path, path);
 	strcpy(node2->mtime, mtime);
 	strcpy(node2->atime, atime);
 	strcpy(node2->hash, hash);
+	node2->uid = uid;
+	node2->gid = gid;
+	node2->mode = mode;
 }
 
 // 가장 최근 시간 노드 구하기

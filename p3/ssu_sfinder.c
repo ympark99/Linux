@@ -262,16 +262,19 @@ int main(){
 							break;
 						case 'c' :					
 							if(optarg == NULL) c_opt[1] = true;
-							else if(!strcmp(optarg, "filename")) c_opt[0] = true;
-							else if(!strcmp(optarg, "size")) c_opt[1] = true;
-							else if(!strcmp(optarg, "uid")) c_opt[2] = true;
-							else if(!strcmp(optarg, "gid")) c_opt[3] = true;
-							else if(!strcmp(optarg, "mode")) c_opt[4] = true;																		
 							else{
-								fprintf(stderr, "c 옵션 입력 에러\n");
-								go_next = false;
-								break;
-							}				
+								if(!strcmp(optarg, "size")) c_opt[1] = true;
+								else c_opt[1] = false;								
+								if(!strcmp(optarg, "filename")) c_opt[0] = true;
+								else if(!strcmp(optarg, "uid")) c_opt[2] = true;
+								else if(!strcmp(optarg, "gid")) c_opt[3] = true;
+								else if(!strcmp(optarg, "mode")) c_opt[4] = true;																		
+								else{
+									fprintf(stderr, "c 옵션 입력 에러\n");
+									go_next = false;
+									break;
+								}				
+							}
 							input_opt[1]++;
 							break;
 						case 'o' :						
