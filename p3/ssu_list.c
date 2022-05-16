@@ -14,7 +14,6 @@ void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up){
     }
     // 파일 절대 경로 순인 경우
     else if(c_opt[0]){
-        printf("isfilepathup : %d\n", isFilePathUp);
         // 세트정렬은 관련없으므로 그대로
         // 리스트정렬 : 가장 처음 절대경로 오름차순 -> 반대의 명령 왔을때 뒤집기
         if((sort_up && !isFilePathUp) || (!sort_up && isFilePathUp)){
@@ -29,7 +28,38 @@ void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up){
         }
         print_set(set); // 세트 출력
     }
+    // uid / gid / mode 기준 정렬, 세트 정렬은 관련 없음
+    else if(c_opt[2] || c_opt[3] || c_opt[4]){
+        // 세트정렬은 관련없으므로 그대로
+        // 리스트정렬
+        if(sort_up){
+            Set *cur = set->next;
+            int list_size;
+            while(cur != NULL){
+                list_size = get_listLen(cur->nodeList);
 
+                if(c_opt[2]) sort_idUpList(cur->nodeList, list_size, 0);
+                else if(c_opt[3]) sort_idUpList(cur->nodeList, list_size, 1);
+                else if(c_opt[4]) sort_idUpList(cur->nodeList, list_size, 2);
+
+                cur = cur->next;
+            }
+        }
+        else{ // 내림차순
+            Set *cur = set->next;
+            int list_size;
+            while(cur != NULL){
+                list_size = get_listLen(cur->nodeList);
+
+                if(c_opt[2]) sort_idDownList(cur->nodeList, list_size, 0);
+                else if(c_opt[3]) sort_idDownList(cur->nodeList, list_size, 1);
+                else if(c_opt[4]) sort_idDownList(cur->nodeList, list_size, 2);
+
+                cur = cur->next;
+            }
+        }
+        print_set(set); // 세트 출력
+    }
 
 }
 
@@ -55,6 +85,43 @@ void sort_pathReverse(Node *list, int list_size){
         if(cur->next == NULL) break;
         for (int j = 0; j < list_size - 1 - i; j++){
                 swap_node(cur, cur->next); // swap
+            cur = cur->next;
+        }
+        cur = list->next;
+    }
+}
+
+// uid / gid 기준 오름차순 정렬
+// sortWhat : 0->uid, 1->gid, 2->mode
+void sort_idUpList(Node *list, int list_size, int sortWhat){
+    Node *cur = list->next; // head 다음
+    for (int i = 0; i < list_size; i++){
+        if(cur->next == NULL) break;
+        for (int j = 0; j < list_size - 1 - i; j++){
+            if((cur->uid > cur->next->uid) && (sortWhat == 0))
+                swap_node(cur, cur->next); // swap
+            else if((cur->gid > cur->next->gid) && (sortWhat == 1))
+                swap_node(cur, cur->next); // swap
+            else if((cur->mode > cur->next->mode) && (sortWhat == 2))
+                swap_node(cur, cur->next); // swap                
+            cur = cur->next;
+        }
+        cur = list->next;
+    }
+}
+
+// uid / gid 기준 오름차순 정렬
+void sort_idDownList(Node *list, int list_size, int sortWhat){
+    Node *cur = list->next; // head 다음
+    for (int i = 0; i < list_size; i++){
+        if(cur->next == NULL) break;
+        for (int j = 0; j < list_size - 1 - i; j++){
+            if((cur->uid < cur->next->uid) && (sortWhat == 0))
+                swap_node(cur, cur->next); // swap
+            else if((cur->gid < cur->next->gid) && (sortWhat == 1))
+                swap_node(cur, cur->next); // swap
+            else if((cur->mode < cur->next->mode) && (sortWhat == 2))
+                swap_node(cur, cur->next); // swap                
             cur = cur->next;
         }
         cur = list->next;
