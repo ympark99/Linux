@@ -944,7 +944,7 @@ void delete_set(Set *set){
 		next = cur->next;
 		free(cur);
 		cur = next;
-	}	
+	}
 }
 
 // 큐 초기화

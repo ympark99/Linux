@@ -5,6 +5,10 @@ int main(){
 	// 링크드리스트 head 선언
 	Set *head = malloc(sizeof(Set));
 	head->next = NULL;
+
+	// 링크드리스트 trhead 선언
+	Trash *trhead = malloc(sizeof(Trash));
+	trhead->next = NULL;
 	while (1){
 		char *oper = malloc(sizeof(char) * BUF_SIZE);
 		fprintf(stdout, "20182615> "); // 프롬프트 출력
@@ -380,8 +384,14 @@ int main(){
 				}
 
 				if(go_next){
-					// trash 함수 수행
+					// 기존 trash 제거
+					delete_trash(trhead);
+					// 링크드리스트 head 선언
+					Trash *trhead = malloc(sizeof(Trash));
+					trhead->next = NULL;
 
+					// trash 함수 수행
+					trash(trhead, c_opt, sort_up);
 				}
 			}
 		}
@@ -410,4 +420,14 @@ void ssu_help(){
 	printf("  > restore [RESTORE_INDEX]\n");
 	printf("  > help\n");
 	printf("  > exit\n\n");
+}
+
+void delete_trash(Trash *tr){
+	Trash *cur = tr;
+	Trash *next;
+	while (cur != NULL){
+		next = cur->next;
+		free(cur);
+		cur = next;
+	}
 }

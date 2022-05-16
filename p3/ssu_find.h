@@ -17,6 +17,10 @@
     #define FILEDATA_SIZE 10 // 마지막은 \n
 #endif
 
+#ifndef TRASHDATA_SIZE
+    #define TRASHDATA_SIZE 12 // 마지막은 \n
+#endif
+
 #ifndef COMMA_SIZE
     #define COMMA_SIZE 64
 #endif
@@ -27,6 +31,10 @@
 
 #ifndef OPTDEL_LEN
     #define OPTDEL_LEN 5
+#endif
+
+#ifndef DELTIME_LEN
+    #define DELTIME_LEN 14
 #endif
 
 #include <stdio.h>
@@ -84,7 +92,9 @@ typedef struct Queue{
 
 // 쓰레기통 관리 링크드리스트
 typedef struct Trash{
-	struct Nodes *next; // 다음 주소
+	struct Trash *next; // 다음 주소
+	char delete_date[DELTIME_LEN]; // 삭제 날짜
+	char delete_time[DELTIME_LEN]; // 삭제 시간
 	long long filesize; // 파일 크기(byte)
 	char path[PATH_SIZE]; // 파일 경로
 	char mtime[BUF_SIZE]; // mtime
@@ -149,4 +159,9 @@ void sort_idUpList(Node *list, int list_size, int sortWhat);
 void sort_idDownList(Node *list, int list_size, int sortWhat);
 
 // trash
+void trash(Trash *tr, bool c_opt[5], bool sort_up);
+void file2tr(Trash *tr);
+void delete_trash(Trash *tr);
+void append_trash(Trash *tr, char *splitFile[TRASHDATA_SIZE]);
+void print_trash(Trash *tr);
 #endif
