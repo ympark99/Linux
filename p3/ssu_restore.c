@@ -96,7 +96,7 @@ void restore_set(Set *set, Trash *cur_tr){
     while(cur_set != NULL){
         // 해시값 같은 set 있으면 존재한다는 것 -> 추가
         if(!strcmp(cur_set->hash, cur_tr->hash)){
-            append_list(cur_set->nodeList, cur_tr->filesize, cur_tr->path, cur_tr->mtime, cur_tr->atime,
+            append_node(cur_set->nodeList, cur_tr->filesize, cur_tr->path, cur_tr->mtime, cur_tr->atime,
             cur_tr->hash, cur_tr->uid, cur_tr->gid, cur_tr->mode);
             break;
         }

@@ -147,7 +147,7 @@ void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx);
 void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx);
 void del_set(Set *cur, Set *pre);
 
-void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
+void append_node(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
 void del_node(Node *cur, Node *pre, int log_type);
 void swap_node(Node *node1, Node *node2);
 Node *get_recent(Node *cur);

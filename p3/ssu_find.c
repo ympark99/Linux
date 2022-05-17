@@ -227,7 +227,7 @@ void file2set(FILE * dt, Set *set){
 				int uid = atoi(splitFile[6]);
 				int gid = atoi(splitFile[7]);
 				int mode = atoi(splitFile[8]);
-				append_list(set_cur->nodeList, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5], uid, gid, mode); // 리스트에 추가
+				append_node(set_cur->nodeList, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5], uid, gid, mode); // 리스트에 추가
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
 				fputs("**|", dt); // **으로 체크 표시
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
@@ -815,7 +815,7 @@ void append_set(Set *set, long long filesize, char *path, char *mtime, char *ati
     newSet->nodeList = (Node *)malloc(sizeof(Node));
     memset(newSet->nodeList, 0, sizeof(Node));
 
-    append_list(newSet->nodeList, filesize, path, mtime, atime, hash, uid, gid, mode);
+    append_node(newSet->nodeList, filesize, path, mtime, atime, hash, uid, gid, mode);
     newSet->next = NULL;
 
     if (set->next == NULL) {
@@ -831,7 +831,7 @@ void append_set(Set *set, long long filesize, char *path, char *mtime, char *ati
 }
 
 // 리스트 끝에 추가
-void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode){
+void append_node(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode){
 	Node *cur_list;
 
 	Node *newNode = (Node *)malloc(sizeof(Node));
