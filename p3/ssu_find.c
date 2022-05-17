@@ -2,7 +2,7 @@
 // todo : node에서 filesize 제거 , 옵션, gettimeofday thread
 
 // md5, sha1 관련 함수 실행
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main){
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt, bool from_main){
     int digest_len = is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
 
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
@@ -135,7 +135,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
-        ssu_find(is_md5, extension, min_byte, max_byte, pop_queue(q), thread_num, start, set, q, dt, false);
+        ssu_find(is_md5, extension, min_byte, max_byte, pop_queue(q), thread_num, start, set, only, q, dt, false);
 	}
 	fclose(dt); // w모드 종료
 	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
@@ -166,8 +166,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	sort_upSet(set, set_size);
 	print_set(set); // 세트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
-	delete(set);
-	// option(list); // 옵션 실행
+	delete(set, only);
 }
 
 // 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
@@ -237,7 +236,7 @@ void file2set(FILE * dt, Set *set){
 	}
 }
 
-void delete(Set *set){
+void delete(Set *set, Set *only){
 	while(1){
 		int set_size = get_setLen(set); // 세트 크기
 		if(set_size == 0) break; // 리스트 없으면 탈출
@@ -378,16 +377,16 @@ void delete(Set *set){
 							fprintf(stderr, "LIST_IDX 입력 에러\n");
 							break;
 						}
-						delete_d(set, set_cur, set_pre, set_idx, list_idx); // 현재 세트 인덱스 삭제
+						delete_d(set, only, set_cur, set_pre, set_idx, list_idx); // 현재 세트 인덱스 삭제
 						break;
 					case 2: // i옵션
-						delete_i(set, set_cur, set_pre);
+						delete_i(set, only, set_cur, set_pre);
 						break;
 					case 3: // f옵션
-						delete_f(set, set_cur, set_pre, set_idx);
+						delete_f(set, only, set_cur, set_pre, set_idx);
 						break;
 					case 4: // t옵션
-						delete_t(set, set_cur, set_pre, set_idx);
+						delete_t(set, only, set_cur, set_pre, set_idx);
 						break;														
 					default:
 						break;
@@ -398,7 +397,7 @@ void delete(Set *set){
 }
 
 // 삭제 d옵션
-void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx){
+void delete_d(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx, int list_idx){
 	Node *list_cur = set_cur->nodeList; // 현재 리스트
 	Node *list_pre; // 이전 리스트
 
@@ -416,16 +415,17 @@ void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx){
 
 		del_node(list_cur, list_pre, 1); // 해당 노드 연결 리스트에서 삭제
 
-		// 하나만 남은 경우 제거
-		if(get_listLen(set_cur->nodeList) <= 1)
+		// 하나만 남은 경우 only로 이동
+		if(get_listLen(set_cur->nodeList) == 1){
 			del_set(set_cur, set_pre);
+		}
 		print_set(set); // 세트 출력
 		if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 	}
 }
 
 // 삭제 i옵션
-void delete_i(Set *set, Set *set_cur, Set *set_pre){
+void delete_i(Set *set, Set* only, Set *set_cur, Set *set_pre){
 	Node *cur = set_cur->nodeList->next;
 	Node *pre = set_cur->nodeList; // 삭제 시 cur 위치 복구해줄 포인터
 
@@ -467,15 +467,16 @@ void delete_i(Set *set, Set *set_cur, Set *set_pre){
 	}
 	fprintf(stdout, "\n");
 
-	// 하나만 남은 경우 제거
-	if(get_listLen(set_cur->nodeList) <= 1)
+	// 하나만 남은 경우 only로 이동
+	if(get_listLen(set_cur->nodeList) == 1){
 		del_set(set_cur, set_pre);
+	}
 	print_set(set); // 세트 출력
 	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
 // 삭제 f옵션
-void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx){
+void delete_f(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx){
 	Node *cur = set_cur->nodeList->next;
 	Node *pre = set_cur->nodeList; // 삭제 시 cur 위치 복구해줄 포인터
 
@@ -503,15 +504,16 @@ void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 	}
 	fprintf(stdout, "Left file in #%d : %s (%-15s)\n\n", set_idx, recent->path, recent->mtime);
 
-	// 하나만 남은 경우 제거
-	if(get_listLen(set_cur->nodeList) <= 1)
+	// 하나만 남은 경우 only로 이동
+	if(get_listLen(set_cur->nodeList) == 1){
 		del_set(set_cur, set_pre);
+	}
 	print_set(set); // 세트 출력
 	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
 // t옵션
-void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
+void delete_t(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx){
 	struct passwd *pwd; // 사용자 이름
 	if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
 		fprintf(stderr, "user id error");
@@ -652,9 +654,11 @@ void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx){
 		exit(1);
 	}
 
-	// 하나만 남은 경우 제거
-	if(get_listLen(set_cur->nodeList) <= 1)
+	// 하나만 남은 경우 only로 이동
+	if(get_listLen(set_cur->nodeList) == 1){
+		append_set(only, set_cur->filesize, recent->path, recent->mtime, recent->atime, set_cur->hash, recent->uid, recent->gid, recent->mode);
 		del_set(set_cur, set_pre);
+	}
 	print_set(set); // 세트 출력
 	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }

@@ -5,6 +5,10 @@ int main(){
 	Set *head = malloc(sizeof(Set));
 	head->next = NULL;
 
+	// 하나만 남은 세트 저장해둘곳, 복구 시 활용
+	Set *only = malloc(sizeof(Set));
+	only->next = NULL;
+
 	// 링크드리스트 trhead 선언
 	Trash *trhead = malloc(sizeof(Trash));
 	trhead->next = NULL;
@@ -218,12 +222,17 @@ int main(){
 					Set *head = malloc(sizeof(Set));
 					head->next = NULL;
 
+					delete_set(only); // 기존 세트 제거
+					// 링크드리스트 only 선언
+					Set *only = malloc(sizeof(Set));
+					only->next = NULL;
+
 					struct timeval start;
 					gettimeofday(&start, NULL);
 					!strcmp(splitOper[0], "fmd5") ?
-						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true)
+						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, dt, true)
 						:
-						ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, &q, dt, true);
+						ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, dt, true);
 				}
 			}
 		}
@@ -405,7 +414,7 @@ int main(){
 				if(go_next){
 					// 기존 trash 제거
 					delete_trash(trhead);
-					// 링크드리스트 head 선언
+					// 링크드리스트 trhead 선언
 					Trash *trhead = malloc(sizeof(Trash));
 					trhead->next = NULL;
 
@@ -426,7 +435,7 @@ int main(){
 			}
 			else{
 				int restore_idx = atoi(splitOper[1]);
-				restore(head, trhead, restore_idx); // restore 함수 수행
+				restore(head, only, trhead, restore_idx); // restore 함수 수행
 				print_trash(trhead); // trash list 출력
 			}
 		}
@@ -442,8 +451,8 @@ int main(){
 		}
 		free(oper);
 	}
-	delete_set(head); // 세트 제거
-	delete_trash(trhead); // 쓰레기통 제거
+	// delete_set(head); // 세트 제거
+	// delete_trash(trhead); // 쓰레기통 제거
 	fprintf(stdout, "Prompt End\n");
 	exit(0);
 }

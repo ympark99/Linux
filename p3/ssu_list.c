@@ -6,7 +6,6 @@ void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up){
     // 파일 크기 순 정렬일 경우 그대로 출력 -> 리스트는 크기 같으므로 경로 순 출력
     if(c_opt[1]){
         int set_size = get_setLen(set);
-
         if(sort_up) sort_upSet(set, set_size); // 오름차순
         else sort_downSet(set, set_size); // 내림차순
         
@@ -14,6 +13,7 @@ void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up){
     }
     // 파일 절대 경로 순인 경우
     else if(c_opt[0]){
+        // todo : trash처럼 수정
         // 세트정렬은 관련없으므로 그대로
         // 리스트정렬 : 가장 처음 절대경로 오름차순 -> 반대의 명령 왔을때 뒤집기
         if((sort_up && !isFilePathUp) || (!sort_up && isFilePathUp)){

@@ -90,6 +90,14 @@ typedef struct Set{
 	unsigned char hash[BUF_SIZE]; // hash value
 }Set;
 
+// 하나만 남은 세트 (restore시 참고하여 복구)
+typedef struct Onlyset{
+	struct Set *next; // 다음 주소
+	Node *nodeList; // 세트 당 파일리스트
+	long long filesize; // 파일 크기(byte)
+	unsigned char hash[BUF_SIZE]; // hash value
+}Only;
+
 typedef struct QNode{
 	char path[BUF_SIZE];
 	struct QNode *next;
@@ -118,7 +126,7 @@ typedef struct Trash{
 }Trash;
 
 int digest_len;
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main);
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt, bool from_main);
 void file2set(FILE * dt, Set *list);
 
 void option_a(int list_idx, Node *list); // 추가기능
@@ -140,11 +148,13 @@ int search_set(Set *set, unsigned char hash[digest_len]);
 void sort_upSet(Set *set, int set_size);
 void swap_set(Set *set1, Set *set2);
 
-void delete(Set *set);
-void delete_d(Set *set, Set *set_cur, Set *set_pre, int set_idx, int list_idx);
-void delete_i(Set *set, Set *set_cur, Set *set_pre);
-void delete_f(Set *set, Set *set_cur, Set *set_pre, int set_idx);
-void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx);
+void only2set(Set *set, Set *only);
+
+void delete(Set *set, Set *only);
+void delete_d(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx, int list_idx);
+void delete_i(Set *set, Set* only, Set *set_cur, Set *set_pre);
+void delete_f(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx);
+void delete_t(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx);
 void del_set(Set *cur, Set *pre);
 
 void append_node(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
@@ -180,7 +190,7 @@ int recent_date(char date1[DELTIME_LEN], char date2[DELTIME_LEN]);
 void swap_trash(Trash *tr1, Trash *tr2);
 
 // restore.c
-void restore(Set *set, Trash *tr, int restore_idx);
-void restore_set(Set *set, Trash *cur_tr);
+void restore(Set *set, Set *only, Trash *tr, int restore_idx);
+void restore_set(Set *set, Set *only, Trash *cur_tr);
 void del_trnode(Trash *cur, Trash *pre);
 #endif

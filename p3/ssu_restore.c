@@ -1,6 +1,6 @@
 #include "ssu_find.h"
 
-void restore(Set *set, Trash *tr, int restore_idx){
+void restore(Set *set, Set *only, Trash *tr, int restore_idx){
     Trash *cur = tr;
     Trash *pre;
 
@@ -78,8 +78,8 @@ void restore(Set *set, Trash *tr, int restore_idx){
         return;
     }
     free(str);
-    // // todo : 리스트가 애초에 없을텐데 어떻게?
-    // restore_set(set, cur); // 해당 파일과 해시가 같은 set가 존재하면 추가
+
+    restore_set(set, only, cur); // 해당 파일과 only에 해시가 같은 set가 존재하면 추가
 
     fprintf(stdout, "[RESTORE] success for %s\n", cur->path); // 성공 메시지 출력
     del_trnode(cur, pre); // trash list에서 제거
@@ -90,17 +90,73 @@ void restore(Set *set, Trash *tr, int restore_idx){
 	}
 }
 
-// 세트에 링크드리스트 존재할 경우 복구
-void restore_set(Set *set, Trash *cur_tr){
+// only or set에 링크드리스트 존재할 경우 복구
+void restore_set(Set *set, Set *only, Trash *cur_tr){
+    Set *cur_only = only->next;
+	Set *pre_only = only;
+	bool go_next = true;
+    while(cur_only != NULL){
+        // 해시값 같은 set 있으면
+        if(!strcmp(cur_only->hash, cur_tr->hash)){
+			// only에 추가
+            append_node(cur_only->nodeList, cur_tr->filesize, cur_tr->path, cur_tr->mtime, cur_tr->atime,
+            cur_tr->hash, cur_tr->uid, cur_tr->gid, cur_tr->mode);
+
+			only2set(set, cur_only); // set에 only 추가
+			del_set(cur_only, pre_only); // only에서 제거
+			go_next = false;
+            break;
+        }
+		pre_only = cur_only;
+		cur_only = cur_only->next;
+    }
+
+	if(!go_next) return; // only 통해 추가한경우 리턴
+
+	// 이미 only가 복구돼 set에 존재할 경우 추가
     Set *cur_set = set->next;
     while(cur_set != NULL){
-        // 해시값 같은 set 있으면 존재한다는 것 -> 추가
+        // 해시값 같은 set 있으면
         if(!strcmp(cur_set->hash, cur_tr->hash)){
+			// 세트에 추가
             append_node(cur_set->nodeList, cur_tr->filesize, cur_tr->path, cur_tr->mtime, cur_tr->atime,
             cur_tr->hash, cur_tr->uid, cur_tr->gid, cur_tr->mode);
             break;
         }
+		cur_set = cur_set->next;
     }
+}
+
+// 기존 세트에 only 추가
+void only2set(Set *set, Set *only){
+	Set *cur_set;
+    Set *newSet = (Set *)malloc(sizeof(Set));
+    memset(newSet, 0, sizeof(Set));
+
+    newSet->filesize = only->filesize;
+    strcpy(newSet->hash, only->hash);
+
+    newSet->nodeList = (Node *)malloc(sizeof(Node));
+    memset(newSet->nodeList, 0, sizeof(Node));
+
+	Node *cur_node = only->nodeList->next;
+	// only의 리스트 모두 추가
+	while (cur_node != NULL){
+		append_node(newSet->nodeList, cur_node->filesize, cur_node->path, cur_node->mtime, cur_node->atime, cur_node->hash, cur_node->uid, cur_node->gid, cur_node->mode);
+		cur_node = cur_node->next;
+	}
+
+    newSet->next = NULL;
+
+    if (set->next == NULL) {
+        set->next = newSet;
+    }    
+	else{
+		cur_set = set->next;
+		while (cur_set->next != NULL)
+			cur_set = cur_set->next;
+		cur_set->next = newSet;
+	}
 }
 
 // 쓰레기통 노드 삭제(복구 표시)
