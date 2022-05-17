@@ -152,7 +152,7 @@ void ssu_help();
 
 void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up);
 
-// ssu_list.c
+// list
 void sort_downSet(Set *set, int set_size);
 void sort_pathReverse(Node *list, int list_size);
 void sort_idUpList(Node *list, int list_size, int sortWhat);
@@ -160,16 +160,20 @@ void sort_idDownList(Node *list, int list_size, int sortWhat);
 
 // trash
 void trash(Trash *tr, bool c_opt[5], bool sort_up);
-void file2tr(Trash *tr);
+int file2tr(Trash *tr);
 void delete_trash(Trash *tr);
 void append_trash(Trash *tr, char *splitFile[TRASHDATA_SIZE]);
 void print_trash(Trash *tr);
 int get_trashLen(Trash *tr);
-
 void sort_pathTrash(Trash *tr, int tr_size, bool sort_up);
 void sort_sizeTrash(Trash *tr, int tr_size, bool sort_up);
 void sort_timesTrash(Trash *tr, int tr_size, bool sort_up, bool sort_date);
 int long_path(char path1[PATH_SIZE], char path2[PATH_SIZE]);
 int recent_date(char date1[DELTIME_LEN], char date2[DELTIME_LEN]);
 void swap_trash(Trash *tr1, Trash *tr2);
+
+// restore
+void restore(Set *set, Trash *tr, int restore_idx);
+void restore_set(Set *set, Trash *cur_tr);
+void del_trnode(Trash *cur, Trash *pre);
 #endif

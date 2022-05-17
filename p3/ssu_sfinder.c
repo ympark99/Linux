@@ -1,6 +1,6 @@
 #include "ssu_sfinder.h"
 #include "ssu_find.h"
-// todo : 옵션 입력 에러처리 ex : list list list
+// todo : 옵션 입력 에러처리 ex : list list list, root에서 테스트
 int main(){
 	// 링크드리스트 head 선언
 	Set *head = malloc(sizeof(Set));
@@ -312,9 +312,7 @@ int main(){
 				if(go_next){
 					// list 함수 수행
 					list(head, sort_set, c_opt, sort_up);
-				}				
-
-
+				}
 			}
 		}
 		// trash 명령 시
@@ -395,6 +393,22 @@ int main(){
 				}
 			}
 		}
+		// restore 명령 시
+		else if(splitOper[0] != NULL && !strcmp(oper, "restore")){
+			int trash_size = get_trashLen(trhead);
+			// 명령어 인자 틀리면 에러 처리
+			if(idx != RESTORE_LEN)
+				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
+			// RESTORE_INDEX가 0이거나 리스트 크기보다 큰경우
+			else if(atoi(splitOper[1]) == 0 || atoi(splitOper[1]) > trash_size){
+				fprintf(stderr, "RESTORE_INDEX error\n");
+			}
+			else{
+				int restore_idx = atoi(splitOper[1]);
+				restore(head, trhead, restore_idx); // restore 함수 수행
+				print_trash(trhead); // trash list 출력
+			}
+		}
 		// exit 입력 시 종료
 		else if(splitOper[0] != NULL && !strcmp(oper, "exit")){
 			// exit 뒤 인자 붙으면 help와 동일한 결과 출력
@@ -408,6 +422,7 @@ int main(){
 		free(oper);
 	}
 	delete_set(head); // 세트 제거
+	delete_trash(trhead); // 쓰레기통 제거
 	fprintf(stdout, "Prompt End\n");
 	exit(0);
 }

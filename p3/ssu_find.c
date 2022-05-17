@@ -1,5 +1,5 @@
 #include "ssu_find.h"
-// todo : node에서 filesize/hash 제거 , 옵션
+// todo : node에서 filesize 제거 , 옵션
 
 // md5, sha1 관련 함수 실행
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main){
@@ -969,6 +969,7 @@ void del_set(Set *cur, Set *pre){
 	}
 }
 
+// todo : RESTORE 제거
 // 특정 노드 삭제
 // log_type : 0 -> REMOVE, 1 -> DELETE, 2 -> RESTORE
 void del_node(Node *cur, Node *pre, int log_type){

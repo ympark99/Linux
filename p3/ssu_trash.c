@@ -1,9 +1,10 @@
 #include "ssu_find.h"
 
 void trash(Trash *tr, bool c_opt[5], bool sort_up){
-    file2tr(tr); // trash 링크드 리스트 제작
-
 	int trash_size = get_trashLen(tr);
+
+    if(file2tr(tr) == 404) return; // trash 링크드 리스트 제작, 리스트 없으면 리턴
+
 	// 파일 절대 경로 정렬
     if(c_opt[1]){
         if(sort_up) sort_pathTrash(tr, trash_size, true); // 오름차순
@@ -28,7 +29,7 @@ void trash(Trash *tr, bool c_opt[5], bool sort_up){
 }
 
 // 중복파일 쓰레기통 링크드 리스트에 추가 (복구된 파일 : **, 체크 x : *)
-void file2tr(Trash *tr){
+int file2tr(Trash *tr){
 	struct passwd *pwd; // 사용자 이름
 	if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
 		fprintf(stderr, "user id error");
@@ -39,7 +40,8 @@ void file2tr(Trash *tr){
 
     FILE *fp;
 	fp = fopen(trashinfo_dir, "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
-	if(fp == NULL) fprintf(stderr, "fopen read error\n");
+
+	if(fp == NULL) return 404; // 파일이 없는 경우는 쓰레기통이 없는경우 -> 리턴
 
 	char *line;
 	char *cmpline;
@@ -58,10 +60,11 @@ void file2tr(Trash *tr){
 			idx++;
 			ptr = strtok(NULL, "|");
 		}
-		if(!strcmp(splitFile[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
+		if(!strcmp(splitFile[0], "**")) continue; // 이미 복구 체크 됐다면, 패스
 
         append_trash(tr, splitFile); // append trash list
 	}
+	return 0;
 }
 
 // 리스트 끝에 추가
@@ -104,7 +107,8 @@ void append_trash(Trash *tr, char *splitFile[TRASHDATA_SIZE]){
 void print_trash(Trash *tr){
 	Trash *cur = tr->next;
 	int set_idx = 1;
-    fprintf(stdout, "     FILENAME                                                        SIZE      DELETION DATE       DELETION TIME\n");
+	if(cur != NULL)
+		fprintf(stdout, "     FILENAME                                                        SIZE      DELETION DATE       DELETION TIME\n");
 	while (cur != NULL){
 		if(set_idx < 10) fprintf(stdout, "[ %d] ", set_idx++);
 		else fprintf(stdout, "[%d] ", set_idx++);

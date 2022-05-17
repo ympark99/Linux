@@ -17,6 +17,10 @@
     #define TRASH_LEN 5
 #endif
 
+#ifndef RESTORE_LEN
+    #define RESTORE_LEN 2
+#endif
+
 int check_fileOrDir(char *path);
 
 #endif

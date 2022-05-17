@@ -60,7 +60,6 @@ void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up){
         }
         print_set(set); // 세트 출력
     }
-
 }
 
 // 세트 버블정렬
