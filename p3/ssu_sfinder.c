@@ -266,12 +266,23 @@ int main(){
 						case 'c' :					
 							if(optarg == NULL) c_opt[1] = true;
 							else{
-								if(!strcmp(optarg, "size")) c_opt[1] = true;
-								else c_opt[1] = false;								
-								if(!strcmp(optarg, "filename")) c_opt[0] = true;
-								else if(!strcmp(optarg, "uid")) c_opt[2] = true;
-								else if(!strcmp(optarg, "gid")) c_opt[3] = true;
-								else if(!strcmp(optarg, "mode")) c_opt[4] = true;																		
+								if(!strcmp(optarg, "size")) c_opt[1] = true;								
+								else if(!strcmp(optarg, "filename")){
+									c_opt[0] = true;
+									c_opt[1] = false;
+								}
+								else if(!strcmp(optarg, "uid")){
+									c_opt[2] = true;
+									c_opt[1] = false;									
+								}
+								else if(!strcmp(optarg, "gid")){
+									c_opt[3] = true;
+									c_opt[1] = false;									
+								}
+								else if(!strcmp(optarg, "mode")){
+									c_opt[4] = true;
+									c_opt[1] = false;									
+								}																	
 								else{
 									fprintf(stderr, "c 옵션 입력 에러\n");
 									go_next = false;
@@ -328,7 +339,7 @@ int main(){
 					split_cnt++;
 				}
 				bool go_next = true; // 에러 있는지 확인
-				bool c_opt[5] = {true, false, false, false, false }; // c 옵션 카테고리(파일 이름, filename, size, date, time)
+				bool c_opt[5] = {true, false, false, false, false}; // c 옵션 카테고리(파일이름, 절대경로, size, date, time)
 				bool sort_up = true; // 오름차순 정렬할지 결정
 				int input_opt[2] = {0, }; // 옵션 중복 입력 (-c, -o)
 
@@ -337,18 +348,29 @@ int main(){
 					if(!go_next) break;
 					switch(option_opt){
 						case 'c' :					
-							if(optarg == NULL) c_opt[1] = true;
-							else{							
-								if(!strcmp(optarg, "filename")) c_opt[1] = true;
-								else if(!strcmp(optarg, "size")) c_opt[2] = true;
-								else if(!strcmp(optarg, "date")) c_opt[3] = true;
-								else if(!strcmp(optarg, "time")) c_opt[4] = true;																
+							if(optarg == NULL) c_opt[0] = true;
+							else{				
+								if(!strcmp(optarg, "filename")){
+									c_opt[1] = true;
+									c_opt[0] = false;
+								}
+								else if(!strcmp(optarg, "size")){
+									c_opt[2] = true;
+									c_opt[0] = false;								
+								}
+								else if(!strcmp(optarg, "date")){
+									c_opt[3] = true;
+									c_opt[0] = false;										
+								}
+								else if(!strcmp(optarg, "time")){
+									c_opt[4] = true;
+									c_opt[0] = false;										
+								}																
 								else{
 									fprintf(stderr, "c 옵션 입력 에러\n");
 									go_next = false;
 									break;
-								}				
-								c_opt[0] = false;	
+								}
 							}
 							input_opt[0]++;
 							break;

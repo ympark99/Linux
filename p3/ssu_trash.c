@@ -1,14 +1,17 @@
 #include "ssu_find.h"
 
 void trash(Trash *tr, bool c_opt[5], bool sort_up){
-	int trash_size = get_trashLen(tr);
-
     if(file2tr(tr) == 404) return; // trash 링크드 리스트 제작, 리스트 없으면 리턴
-
-	// 파일 절대 경로 정렬
+	int trash_size = get_trashLen(tr);
+	// 파일 이름 순 정렬
+    if(c_opt[0]){
+        if(sort_up) sort_pathTrash(tr, trash_size, true, true); // 오름차순
+        else sort_pathTrash(tr, trash_size, false, true); // 내림차순
+    }	
+	// 절대 경로 정렬
     if(c_opt[1]){
-        if(sort_up) sort_pathTrash(tr, trash_size, true); // 오름차순
-        else sort_pathTrash(tr, trash_size, false); // 내림차순
+        if(sort_up) sort_pathTrash(tr, trash_size, true, false); // 오름차순
+        else sort_pathTrash(tr, trash_size, false, false); // 내림차순
     }	
     // 파일 크기 순 정렬일 경우 그대로 출력 -> 리스트는 크기 같으므로 경로 순 출력
     else if(c_opt[2]){
@@ -118,18 +121,21 @@ void print_trash(Trash *tr){
 	}
 }
 
-// 절대 경로 기준 정렬
-void sort_pathTrash(Trash *tr, int tr_size, bool sort_up){
+// filename, 절대경로 정렬 : sort_name -> 파일 이름순 정렬
+void sort_pathTrash(Trash *tr, int tr_size, bool sort_up, bool sort_name){
     Trash *cur = tr->next; // head 다음
 	int get_longPath = -1;
+	int cmp_res = 0;
+
     for (int i = 0; i < tr_size; i++){
         if(cur->next == NULL) break;
         for (int j = 0; j < tr_size - 1 - i; j++){
-			get_longPath = long_path(cur->path, cur->next->path);
-
-            if((get_longPath == 1) && sort_up)
+			char* name1 = strrchr(cur->path, '/'); // 파일 이름 추출
+			char* name2 = strrchr(cur->next->path, '/'); // 파일 이름 추출
+			cmp_res = sort_name ? strcmp(name1, name2) : strcmp(cur->path, cur->next->path);
+            if((cmp_res > 0) && sort_up)
                 swap_trash(cur, cur->next); // swap
-            else if((get_longPath == 0) && !sort_up)
+            else if((cmp_res < 0) && !sort_up)
                 swap_trash(cur, cur->next); // swap
             cur = cur->next;
         }
@@ -171,18 +177,6 @@ void sort_timesTrash(Trash *tr, int tr_size, bool sort_up, bool sort_date){
         }
         cur = tr->next;
     }
-}
-
-// path2 절대 경로가 더 길면 0 반환, 더 짧으면 1반환, 같으면 2반환
-int long_path(char path1[PATH_SIZE], char path2[PATH_SIZE]){
-	int path1_cnt, path2_cnt = 0;
-	for(int i = 0; i < PATH_SIZE; i++){
-		if(path1[i] == '/') path1_cnt++;
-		if(path2[i] == '/') path2_cnt++;
-	}
-	if(path2_cnt > path1_cnt) return 0;
-	else if(path2_cnt < path1_cnt) return 1;
-	return 2;
 }
 
 // date2가 최근이면(더 크면) 0 반환, 더 작으면 1반환, 같으면 2반환

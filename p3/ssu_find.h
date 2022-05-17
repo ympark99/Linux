@@ -173,10 +173,9 @@ void delete_trash(Trash *tr);
 void append_trash(Trash *tr, char *splitFile[TRASHDATA_SIZE]);
 void print_trash(Trash *tr);
 int get_trashLen(Trash *tr);
-void sort_pathTrash(Trash *tr, int tr_size, bool sort_up);
+void sort_pathTrash(Trash *tr, int tr_size, bool sort_up, bool sort_name);
 void sort_sizeTrash(Trash *tr, int tr_size, bool sort_up);
 void sort_timesTrash(Trash *tr, int tr_size, bool sort_up, bool sort_date);
-int long_path(char path1[PATH_SIZE], char path2[PATH_SIZE]);
 int recent_date(char date1[DELTIME_LEN], char date2[DELTIME_LEN]);
 void swap_trash(Trash *tr1, Trash *tr2);
 
