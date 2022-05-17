@@ -1,4 +1,3 @@
-#include "ssu_sfinder.h"
 #include "ssu_find.h"
 // todo : 옵션 입력 에러처리 ex : list list list, root에서 테스트
 int main(){
@@ -20,12 +19,12 @@ int main(){
 			memmove(oper, oper + 1, strlen(oper));
 		}
 		
-		char *splitOper[OPER_LEN] = {NULL, }; // 명령어 split
+		char *splitOper[FIRST_OPER_LEN] = {NULL, }; // 명령어 split
 		char *ptr = strtok(oper, " "); // 공백 기준으로 문자열 자르기
 
 		int idx = 0;
 		while (ptr != NULL){
-			if(idx < OPER_LEN) splitOper[idx] = ptr;
+			if(idx < FIRST_OPER_LEN) splitOper[idx] = ptr;
 			idx++;
 			ptr = strtok(NULL, " ");
 		}
@@ -37,7 +36,7 @@ int main(){
 		// fmd5 or fsha1 명령 시
 		if(splitOper[0] != NULL && (!strcmp(splitOper[0], "fmd5") || !strcmp(splitOper[0], "fsha1"))){
 			// 명령어 인자 틀리면 에러 처리
-			if(idx != OPER_LEN && idx != OPER_LEN - 2)
+			if(idx != FIRST_OPER_LEN && idx != FIRST_OPER_LEN - 2)
 				fprintf(stderr, "명령어를 맞게 입력해주세요\n");
 			else{
 				int option_opt;
@@ -50,7 +49,7 @@ int main(){
 				char *pos = NULL; // 실수 계산시 저장할 포인터
 				int thread_num = 1; // 쓰레드 개수
 
-				for(int i = 0; i < OPER_LEN; i++){
+				for(int i = 0; i < FIRST_OPER_LEN; i++){
 					if(splitOper[i] == NULL) break;
 					split_cnt++;
 				}

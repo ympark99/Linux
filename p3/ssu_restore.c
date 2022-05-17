@@ -1,7 +1,5 @@
 #include "ssu_find.h"
 
-// todo : 복구시 **표시
-
 void restore(Set *set, Trash *tr, int restore_idx){
     Trash *cur = tr;
     Trash *pre;

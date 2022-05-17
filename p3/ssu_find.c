@@ -1,5 +1,5 @@
 #include "ssu_find.h"
-// todo : node에서 filesize 제거 , 옵션
+// todo : node에서 filesize 제거 , 옵션, gettimeofday thread
 
 // md5, sha1 관련 함수 실행
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, queue *q, FILE *dt, bool from_main){
@@ -906,36 +906,6 @@ void print_set(Set *set){
 	}
 }
 
-// 리스트 전체 데이터 출력 and 라벨링
-void print_list(Node *list){
-	// Node *cur = list->next;
-	// int cnt = 0;
-	// int small_cnt = 1;
-	// unsigned char pre_hash[BUF_SIZE] = "";
-	// while (cur != NULL){
-	// 	// 해시값이 다르면 다른 리스트출력
-	// 	if(strcmp(pre_hash, cur->hash)){
-	// 		cnt++;
-	// 		small_cnt = 1;
-
-	// 		if(cnt != 1) fprintf(stdout, "\n"); // 2번째 파일부터는 한칸 씩 더 띄워줌
-
-	// 		fprintf(stdout, "---- Identical files #%d (%s bytes - ", cnt, size2comma(cur->filesize));
-	// 		fprintf(stdout, "%s", cur->hash);
-	// 		fprintf(stdout, ") ----\n");
-			
-	// 		strcpy(pre_hash, cur->hash);
-	// 	}
-	// 	cur->set_num = cnt; // 현재 세트 번호 저장
-	// 	cur->idx_num = small_cnt; // 세트 내 인덱스 번호 저장
-
-	// 	fprintf(stdout, "[%d] %s (mtime : %-15s) (atime : %-15s)\n", small_cnt, cur->path, cur->mtime, cur->atime);
-	// 	small_cnt++;
-
-	// 	cur = cur->next;
-	// }
-}
-
 // 메모리 해제
 void delete_set(Set *set){
 	Set *cur = set;
@@ -1044,23 +1014,6 @@ int search_set(Set *set, unsigned char hash[digest_len]){
 	return 0;
 }
 
-// 해시 일치할경우 인덱스 반환
-int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]){
-    Node *cur = list->next; // head 다음
-    int idx = 1;	
-
-    while(cur != NULL){
-		// 본인이 아닌 같은 해시 찾은 경우
-        if((idx != cmp_idx) && !strcmp(cur->hash, hash))
-			return idx;
-        
-        cur = cur->next;
-        idx++;
-    }
-	// 못 찾은 경우
-    return -1;
-}
-
 // 세트 버블정렬(오름차순)
 // 파일크기순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
 void sort_upSet(Set *set, int set_size){
@@ -1073,21 +1026,6 @@ void sort_upSet(Set *set, int set_size){
             cur = cur->next;
         }
         cur = set->next;
-    }
-}
-
-// 리스트 버블정렬
-// 파일크기순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
-void sort_list(Node *list, int list_size){
-    Node *cur = list->next; // head 다음
-    for (int i = 0; i < list_size; i++){
-        if(cur->next == NULL) break;
-        for (int j = 0; j < list_size - 1 - i; j++){
-            if(cur->filesize > cur->next->filesize)
-                swap_node(cur, cur->next); // swap
-            cur = cur->next;
-        }
-        cur = list->next;
     }
 }
 

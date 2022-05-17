@@ -9,6 +9,22 @@
     #define BUF_SIZE 1024
 #endif
 
+#ifndef FIRST_OPER_LEN
+    #define FIRST_OPER_LEN 11
+#endif
+
+#ifndef LIST_LEN
+    #define LIST_LEN 7
+#endif
+
+#ifndef TRASH_LEN
+    #define TRASH_LEN 5
+#endif
+
+#ifndef RESTORE_LEN
+    #define RESTORE_LEN 2
+#endif
+
 #ifndef PATH_SIZE
     #define PATH_SIZE 4096
 #endif
@@ -23,10 +39,6 @@
 
 #ifndef COMMA_SIZE
     #define COMMA_SIZE 64
-#endif
-
-#ifndef OPER_LEN
-    #define OPER_LEN 5
 #endif
 
 #ifndef OPTDEL_LEN
@@ -136,10 +148,7 @@ void delete_t(Set *set, Set *set_cur, Set *set_pre, int set_idx);
 void del_set(Set *cur, Set *pre);
 
 void append_list(Node *list, long long filesize, char *path, char *mtime, char *atime, unsigned char hash[digest_len], int uid, int gid, int mode);
-void print_list(Node *list);
 void del_node(Node *cur, Node *pre, int log_type);
-int search_hash(Node *list, int cmp_idx, unsigned char hash[digest_len]);
-void sort_list(Node *list, int list_size);
 void swap_node(Node *node1, Node *node2);
 Node *get_recent(Node *cur);
 
@@ -148,17 +157,16 @@ bool isEmpty_queue(queue *q);
 void push_queue(queue *q, char path[BUF_SIZE]);
 char *pop_queue(queue *q);
 
-void ssu_help();
+void ssu_help(); // help
 
+// list.c
 void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up);
-
-// list
 void sort_downSet(Set *set, int set_size);
 void sort_pathReverse(Node *list, int list_size);
 void sort_idUpList(Node *list, int list_size, int sortWhat);
 void sort_idDownList(Node *list, int list_size, int sortWhat);
 
-// trash
+// trash.c
 void trash(Trash *tr, bool c_opt[5], bool sort_up);
 int file2tr(Trash *tr);
 void delete_trash(Trash *tr);
@@ -172,7 +180,7 @@ int long_path(char path1[PATH_SIZE], char path2[PATH_SIZE]);
 int recent_date(char date1[DELTIME_LEN], char date2[DELTIME_LEN]);
 void swap_trash(Trash *tr1, Trash *tr2);
 
-// restore
+// restore.c
 void restore(Set *set, Trash *tr, int restore_idx);
 void restore_set(Set *set, Trash *cur_tr);
 void del_trnode(Trash *cur, Trash *pre);
