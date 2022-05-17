@@ -3,15 +3,23 @@
 void trash(Trash *tr, bool c_opt[5], bool sort_up){
     file2tr(tr); // trash 링크드 리스트 제작
 
+	int trash_size = get_trashLen(tr);
     // 파일 크기 순 정렬일 경우 그대로 출력 -> 리스트는 크기 같으므로 경로 순 출력
     if(c_opt[2]){
-		int trash_size = get_trashLen(tr);
-
         if(sort_up) sort_sizeTrash(tr, trash_size, true); // 오름차순
         else sort_sizeTrash(tr, trash_size, false); // 내림차순
     }
-
-    // todo : 정렬 나머지
+	// todo : 파일 절대 경로 정렬
+	// 날짜 순 정렬일 경우
+    else if(c_opt[3]){
+        if(sort_up) sort_timesTrash(tr, trash_size, true, true); // 오름차순
+        else sort_timesTrash(tr, trash_size, false, true); // 내림차순
+    }
+	// 시간 순 정렬일 경우
+    else if(c_opt[4]){
+        if(sort_up) sort_timesTrash(tr, trash_size, true, false); // 오름차순
+        else sort_timesTrash(tr, trash_size, false, false); // 내림차순
+    }
     print_trash(tr);
 }
 
@@ -116,6 +124,36 @@ void sort_sizeTrash(Trash *tr, int tr_size, bool sort_up){
         }
         cur = tr->next;
     }
+}
+
+// 날짜 기준 정렬
+// sort_date : 날짜 소팅하는지?
+void sort_timesTrash(Trash *tr, int tr_size, bool sort_up, bool sort_date){
+    Trash *cur = tr->next; // head 다음
+	int get_dateRes = -1;
+    for (int i = 0; i < tr_size; i++){
+        if(cur->next == NULL) break;
+        for (int j = 0; j < tr_size - 1 - i; j++){
+			get_dateRes = sort_date ? recent_date(cur->delete_date, cur->next->delete_date) 
+			: recent_date(cur->delete_time, cur->next->delete_time);
+
+            if((get_dateRes == 1) && sort_up)
+                swap_trash(cur, cur->next); // swap
+            else if((get_dateRes == 0) && !sort_up)
+                swap_trash(cur, cur->next); // swap
+            cur = cur->next;
+        }
+        cur = tr->next;
+    }
+}
+
+// date2가 최근이면(더 크면) 0 반환, 더 작으면 1반환, 같으면 2반환
+int recent_date(char date1[DELTIME_LEN], char date2[DELTIME_LEN]){
+	for(int i = 0; i < DELTIME_LEN; i++){
+		if(date2[i] > date1[i]) return 0;
+		else if(date2[i] < date1[i]) return 1;
+	}
+	return 2;
 }
 
 // 리스트 크기 구하기
