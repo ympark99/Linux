@@ -230,9 +230,9 @@ int main(){
 					struct timeval start;
 					gettimeofday(&start, NULL);
 					!strcmp(splitOper[0], "fmd5") ?
-						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, dt, true)
+						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, 0, dt, true)
 						:
-						ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, dt, true);
+						ssu_find(false, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, 0, dt, true);
 				}
 			}
 		}

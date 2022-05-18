@@ -67,7 +67,7 @@
 #include <errno.h>
 #include <pwd.h>
 #include <ctype.h>
-
+#include <pthread.h>
 
 // 세트 당 파일리스트
 typedef struct Nodes{
@@ -110,6 +110,22 @@ typedef struct Queue{
 	int cnt; // 큐 안의 노드 개수
 }queue;
 
+typedef struct Thread{
+	bool is_md5;
+	char extension[BUF_SIZE];
+	long double min_byte; 
+	long double max_byte; 
+	char find_path[BUF_SIZE]; 
+	int thread_num; 
+	struct timeval start; 
+	Set *set; 
+	Set *only; 
+	queue *q; 
+	int q_depth; 
+	FILE *dt; 
+	bool from_main;
+}Thread;
+
 // 쓰레기통 관리 링크드리스트
 typedef struct Trash{
 	struct Trash *next; // 다음 주소
@@ -126,7 +142,8 @@ typedef struct Trash{
 }Trash;
 
 int digest_len;
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt, bool from_main);
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, int q_depth, FILE *dt, bool from_main);
+void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], queue *q, int q_depth, FILE *dt);
 void file2set(FILE * dt, Set *list);
 
 void option_a(int list_idx, Node *list); // 추가기능

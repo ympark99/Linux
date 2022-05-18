@@ -2,7 +2,67 @@
 // todo : 옵션, gettimeofday thread
 
 // md5, sha1 관련 함수 실행
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt, bool from_main){
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, int q_depth, FILE *dt, bool from_main){
+	// 절대경로 변환
+	char dir_path[BUF_SIZE];
+	if(realpath(find_path, dir_path) == NULL){
+		fprintf(stderr, "realpath error : %s\n", strerror(errno));
+		return;
+	}
+
+	find_file(is_md5, extension, min_byte, max_byte, find_path, q, q_depth, dt); // 조건 맞는 파일 찾아 큐에 추가
+
+	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
+	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
+	while (!isEmpty_queue(q)){
+		// todo : 쓰레드 처리
+		// pthread_t p_thread[5]; // bfs 돌릴 쓰레드
+		// int thr_id;
+		// int status;
+
+		// // thr_id = pthread_create(&p_thread[0], NULL, ssu_find, );
+	
+		// // pthread_create() 으로 성공적으로 쓰레드가 생성되면 0 이 리턴됩니다
+		// if (thr_id < 0){
+		// 	fprintf(stderr, "thread create error\n");
+		// 	exit(0);
+		// }
+		find_file(is_md5, extension, min_byte, max_byte, pop_queue(q), q, q_depth+1, dt); // 조건 맞는 파일 찾아 큐에 추가
+	}
+	fclose(dt); // w모드 종료
+	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
+	if(dt == NULL) fprintf(stderr, "fopen read error\n");
+
+	file2set(dt, set); // 중복파일 리스트 추가
+	fclose(dt);
+
+	// 데이터 파일 삭제
+	if(unlink(".writeReadData.txt") == -1)
+		fprintf(stderr, "writeReadData delete error\n");
+
+	struct timeval end; 
+	gettimeofday(&end, NULL); // 종료 시간 측정
+
+	int set_size = get_setLen(set);
+
+	if(set_size == 0){
+		if(realpath(find_path, dir_path) == NULL){
+			fprintf(stderr, "realpath error : %s\n", strerror(errno));
+			return;
+		}
+		fprintf(stdout, "No duplicates in %s\n", dir_path);
+		return;
+	}
+
+	// 파일크기 오름차순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
+	sort_upSet(set, set_size);
+	print_set(set); // 세트 출력
+	get_searchtime(start, end); // 탐색 시간 출력
+	delete(set, only);
+}
+
+// 디렉토리에서 조건 맞는 파일 txt에 추가
+void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], queue *q, int q_depth, FILE *dt){
     int digest_len = is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
 
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
@@ -132,41 +192,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	}
 	free(filelist);
 
-	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
-	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
-	while (!isEmpty_queue(q)){
-        ssu_find(is_md5, extension, min_byte, max_byte, pop_queue(q), thread_num, start, set, only, q, dt, false);
-	}
-	fclose(dt); // w모드 종료
-	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
-	if(dt == NULL) fprintf(stderr, "fopen read error\n");
-	// 중복파일 리스트 추가
-	file2set(dt, set);
-	fclose(dt);
-
-	// 데이터 파일 삭제
-	if(unlink(".writeReadData.txt") == -1)
-		fprintf(stderr, "writeReadData delete error\n");
-
-	struct timeval end; 
-	gettimeofday(&end, NULL); // 종료 시간 측정
-
-	int set_size = get_setLen(set);
-
-	if(set_size == 0){
-		if(realpath(find_path, dir_path) == NULL){
-			fprintf(stderr, "realpath error : %s\n", strerror(errno));
-			return;
-		}
-		fprintf(stdout, "No duplicates in %s\n", dir_path);
-		return;
-	}
-
-	// 파일크기 오름차순 정렬 (bfs이므로 파일크기 같을 경우 절대경로 짧은 순 -> 임의(아스키 코드 순))
-	sort_upSet(set, set_size);
-	print_set(set); // 세트 출력
-	get_searchtime(start, end); // 탐색 시간 출력
-	delete(set, only);
+	return;
 }
 
 // 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
