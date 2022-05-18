@@ -2,7 +2,9 @@
 // todo : 옵션, gettimeofday thread
 
 // md5, sha1 관련 함수 실행
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, int q_depth, FILE *dt, bool from_main){
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, int q_depth, FILE *dt){
+	pthread_t p_thread[5]; // bfs 돌릴 쓰레드
+
 	// 절대경로 변환
 	char dir_path[BUF_SIZE];
 	if(realpath(find_path, dir_path) == NULL){
@@ -10,24 +12,47 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		return;
 	}
 
-	find_file(is_md5, extension, min_byte, max_byte, find_path, q, q_depth, dt); // 조건 맞는 파일 찾아 큐에 추가
+	int thr_id;
+	int status;
+	Thread th; // 쓰레드에 넘길 구조체 생성
 
-	if(!from_main) return; // 처음 메인에서 실행한게 아니라면 리턴 (재귀 종료)	
+	th.is_md5 = is_md5;
+	strcpy(th.extension, extension);
+	th.min_byte = min_byte;
+	th.max_byte = max_byte;
+	strcpy(th.find_path, find_path);
+	th.q = q;
+	th.q_depth = q_depth;
+	th.dt = dt;
+
+	thr_id = pthread_create(&p_thread[0], NULL, find_file, (void *)&th); // 최초 디렉토리 한개 탐색
+	if (thr_id < 0){
+		fprintf(stderr, "thread create error\n");
+		exit(0);
+	}
+	pthread_join(p_thread[0], (void **)&status); // 쓰레드 종료시까지 대기
+	
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
-		// todo : 쓰레드 처리
-		// pthread_t p_thread[5]; // bfs 돌릴 쓰레드
-		// int thr_id;
-		// int status;
-
-		// // thr_id = pthread_create(&p_thread[0], NULL, ssu_find, );
+		int thr_id;
+		int status;
+		Thread th; // 쓰레드에 넘길 구조체 생성
 	
-		// // pthread_create() 으로 성공적으로 쓰레드가 생성되면 0 이 리턴됩니다
-		// if (thr_id < 0){
-		// 	fprintf(stderr, "thread create error\n");
-		// 	exit(0);
-		// }
-		find_file(is_md5, extension, min_byte, max_byte, pop_queue(q), q, q_depth+1, dt); // 조건 맞는 파일 찾아 큐에 추가
+		th.is_md5 = is_md5;
+		strcpy(th.extension, extension);
+		th.min_byte = min_byte;
+		th.max_byte = max_byte;
+		strcpy(th.find_path, find_path);
+		th.q = q;
+		th.q_depth = q_depth;
+		th.dt = dt;
+
+		thr_id = pthread_create(&p_thread[0], NULL, find_file, (void *)&th);
+		if (thr_id < 0){
+			fprintf(stderr, "thread create error\n");
+			exit(0);
+		}
+		pthread_join(p_thread[0], (void **)&status); // 쓰레드 종료시까지 대기
 	}
 	fclose(dt); // w모드 종료
 	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
@@ -62,22 +87,24 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 }
 
 // 디렉토리에서 조건 맞는 파일 txt에 추가
-void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], queue *q, int q_depth, FILE *dt){
-    int digest_len = is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
+void *find_file(void *p){
+	Thread *tr = (Thread *)p;
+
+    int digest_len = tr->is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
 
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
-	if((cnt = scandir(find_path, &filelist, scandirFilter, alphasort)) == -1){
-		fprintf(stderr, "%s error, ERROR : %s\n", find_path, strerror(errno));
-		return;
+	if((cnt = scandir(tr->find_path, &filelist, scandirFilter, alphasort)) == -1){
+		fprintf(stderr, "%s error, ERROR : %s\n", tr->find_path, strerror(errno));
+		return (void *)-1;
 	}
 
 	// 절대경로 변환
 	char dir_path[BUF_SIZE];
-	if(realpath(find_path, dir_path) == NULL){
+	if(realpath(tr->find_path, dir_path) == NULL){
 		fprintf(stderr, "realpath error : %s\n", strerror(errno));
-		return;
+		return (void *)-1;
 	}
 
 	char pathname[BUF_SIZE]; // 합성할 path이름
@@ -99,8 +126,8 @@ void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long
         // 파일일경우
         if(fileOrDir == 1){
             // *.(확장자)인 경우
-			if(strlen(extension) > 1 ){
-				char* ori_fname = strrchr(extension, '.'); // 지정 파일 확장자
+			if(strlen(tr->extension) > 1 ){
+				char* ori_fname = strrchr(tr->extension, '.'); // 지정 파일 확장자
 				char* cmp_fname = strrchr(filelist[i]->d_name, '.'); // 가져온 파일 확장자
 
 				// 확장자가 없거나 확장자가 다르면 패스
@@ -121,10 +148,10 @@ void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long
 			if(filesize == 0) continue; // 0바이트인경우 패스
 
             // ~ 입력한경우 검사 x, 최소 크기보다 작은 경우
-            if(min_byte != -1 && filesize < min_byte) continue;
+            if(tr->min_byte != -1 && filesize < tr->min_byte) continue;
 
             // ~ 입력한경우 검사 x, 최대 크기보다 큰 경우
-            if(max_byte != -1 && filesize > max_byte) continue;	
+            if(tr->max_byte != -1 && filesize > tr->max_byte) continue;	
 
 			// 파일 읽기 권한 없으면 패스
 			if(!st.st_mode & S_IRWXU) continue;
@@ -133,7 +160,7 @@ void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long
 			if (fp == NULL) continue; // fopen 에러시 패스
 
 			unsigned char filehash[digest_len * 2 + 1]; // 해시값 저장할 문자열
-            is_md5 ? strcpy(filehash, get_md5(fp)) : strcpy(filehash, get_sha1(fp)); // 해시값 구해서 저장
+            tr->is_md5 ? strcpy(filehash, get_md5(fp)) : strcpy(filehash, get_sha1(fp)); // 해시값 구해서 저장
 
 			fclose(fp);
 
@@ -147,31 +174,31 @@ void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long
 			unsigned long mode = st.st_mode;
 
 			// 파일에 저장
-			if(dt != NULL){
+			if(tr->dt != NULL){
 				char to_str[BUF_SIZE];
 				sprintf(to_str, "%lld", (long long)filesize);
-				fputs("*", dt); // 체크 여부
-				fputs("|", dt);
-				fputs(to_str, dt); // 파일 크기
-				fputs("|", dt);
-				fputs(pathname, dt); // 파일 절대경로
-				fputs("|", dt);
-				fputs(mstr, dt); // mtime
-				fputs("|", dt);
-				fputs(astr, dt); // atime
-				fputs("|", dt);
-				fputs(filehash, dt); // hash
-				fputs("|", dt);
+				fputs("*", tr->dt); // 체크 여부
+				fputs("|", tr->dt);
+				fputs(to_str, tr->dt); // 파일 크기
+				fputs("|", tr->dt);
+				fputs(pathname, tr->dt); // 파일 절대경로
+				fputs("|", tr->dt);
+				fputs(mstr, tr->dt); // mtime
+				fputs("|", tr->dt);
+				fputs(astr, tr->dt); // atime
+				fputs("|", tr->dt);
+				fputs(filehash, tr->dt); // hash
+				fputs("|", tr->dt);
 				sprintf(to_str, "%d", (int)uid); // uid
-				fputs(to_str, dt);
-				fputs("|", dt);
+				fputs(to_str, tr->dt);
+				fputs("|", tr->dt);
 				sprintf(to_str, "%d", (int)gid); // gid
-				fputs(to_str, dt);
-				fputs("|", dt);
+				fputs(to_str, tr->dt);
+				fputs("|", tr->dt);
 				sprintf(to_str, "%lu", mode); // mode
-				fputs(to_str, dt);
-				fputs("|", dt);		
-				fputs("\n", dt); // enter
+				fputs(to_str, tr->dt);
+				fputs("|", tr->dt);		
+				fputs("\n", tr->dt); // enter
 			}
 			free(mstr);
 			free(astr);
@@ -179,11 +206,11 @@ void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long
         // 디렉토리일 경우
         else if(fileOrDir == 2){
             // 루트에서부터 탐색시, proc, run, sys 제외
-			if(!strcmp(find_path, "/")){
+			if(!strcmp(tr->find_path, "/")){
 				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
 					continue;
 			}
-			push_queue(q, pathname); // 찾은 디렉토리경로 큐 추가
+			push_queue(tr->q, pathname); // 찾은 디렉토리경로 큐 추가
         }
     }
 
@@ -191,8 +218,6 @@ void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long
 		free(filelist[i]);
 	}
 	free(filelist);
-
-	return;
 }
 
 // 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
