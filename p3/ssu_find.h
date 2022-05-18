@@ -172,7 +172,7 @@ void ssu_help(); // help
 // list.c
 void list(Set *set, bool sort_set, bool c_opt[5], bool sort_up);
 void sort_downSet(Set *set, int set_size);
-void sort_pathReverse(Node *list, int list_size);
+void sort_pathNode(Node *list, int list_size, bool sort_up);
 void sort_idUpList(Node *list, int list_size, int sortWhat);
 void sort_idDownList(Node *list, int list_size, int sortWhat);
 
