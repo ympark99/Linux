@@ -230,7 +230,6 @@ int main(){
 						Set *only = malloc(sizeof(Set));
 						only->next = NULL;
 					}
-					printf("debug4\n");
 					struct timeval start;
 					gettimeofday(&start, NULL);
 					!strcmp(splitOper[0], "fmd5") ?
