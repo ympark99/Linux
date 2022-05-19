@@ -217,16 +217,20 @@ int main(){
 						exit(1);
 					}
 
-					delete_set(head); // 기존 세트 제거
-					// 링크드리스트 head 선언
-					Set *head = malloc(sizeof(Set));
-					head->next = NULL;
+					if(get_setLen(head) != 0){ // 세트 있을경우 제거하고 재생성
+						delete_set(head); // 기존 세트 제거
+						// 링크드리스트 head 선언
+						Set *head = malloc(sizeof(Set));
+						head->next = NULL;
+					}
 
-					delete_set(only); // 기존 세트 제거
-					// 링크드리스트 only 선언
-					Set *only = malloc(sizeof(Set));
-					only->next = NULL;
-
+					if(get_setLen(only) != 0){ // only 있을경우 제거하고 재생성
+						delete_set(only); // 기존 세트 제거
+						// 링크드리스트 only 선언
+						Set *only = malloc(sizeof(Set));
+						only->next = NULL;
+					}
+					printf("debug4\n");
 					struct timeval start;
 					gettimeofday(&start, NULL);
 					!strcmp(splitOper[0], "fmd5") ?

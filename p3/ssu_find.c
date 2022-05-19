@@ -62,7 +62,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			th[i].q_depth = q_depth++;
 			th[i].dt = dt;
 
-			printf("%d : %s\n", cnt, th[i].find_path);
 			thr_id = pthread_create(&p_thread[i], NULL, find_file, (void *)&th[i]); // 쓰레드 생성 후 함수 호출
 			if (thr_id < 0){
 				fprintf(stderr, "thread create error\n");
@@ -113,7 +112,6 @@ void *find_file(void *p){
 	Thread *tr = (Thread *)p;
 
     int digest_len = tr->is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
-	printf("path : %s\n", tr->find_path);
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
