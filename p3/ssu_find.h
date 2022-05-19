@@ -118,7 +118,6 @@ typedef struct Thread{
 	long double max_byte; 
 	char find_path[BUF_SIZE]; 
 	queue *q; 
-	int q_depth; 
 	FILE *dt;
 }Thread;
 
@@ -138,9 +137,8 @@ typedef struct Trash{
 }Trash;
 
 int digest_len;
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, int q_depth, FILE *dt);
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt);
 void *find_file(void *p);
-// void find_file(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], queue *q, int q_depth, FILE *dt);
 void file2set(FILE * dt, Set *list);
 
 void option_a(int list_idx, Node *list); // 추가기능

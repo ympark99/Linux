@@ -1,17 +1,7 @@
 #include "ssu_find.h"
-// todo : 옵션, gettimeofday thread
-// bfs
-// scandir
-// -> dir 여러개면
-
-// 쓰레드 creat돌려서 dir 돌리기 && 깊이 같은거까지
-// 종료시까지 대기
-
-// 다음 쓰레드 creat
-pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // md5, sha1 관련 함수 실행
-void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, int q_depth, FILE *dt){
+void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt){
 	pthread_t p_thread[5]; // bfs 돌릴 쓰레드
 
 	// 절대경로 변환
@@ -31,7 +21,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	th.max_byte = max_byte;
 	strcpy(th.find_path, find_path);
 	th.q = q;
-	th.q_depth = q_depth;
 	th.dt = dt;
 
 	thr_id = pthread_create(&p_thread[0], NULL, find_file, (void *)&th); // 최초 디렉토리 한개 탐색
@@ -59,7 +48,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			th[i].max_byte = max_byte;
 			strcpy(th[i].find_path, pop_queue(q));
 			th[i].q = q;
-			th[i].q_depth = q_depth++;
 			th[i].dt = dt;
 
 			thr_id = pthread_create(&p_thread[i], NULL, find_file, (void *)&th[i]); // 쓰레드 생성 후 함수 호출
@@ -72,8 +60,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		for(int i = 0; i < cnt; i++){
 			pthread_join(p_thread[i], (void **)&status); // 쓰레드 종료시까지 대기
 		}
-		pthread_mutex_destroy(&mutex_lock);
-		// find_file(is_md5, extension, min_byte, max_byte, pop_queue(q), q, q_depth+1, dt); // 조건 맞는 파일 찾아 큐에 추가
 	}
 	fclose(dt); // w모드 종료
 	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
@@ -127,7 +113,6 @@ void *find_file(void *p){
 		return (void *)-1;
 	}
 	
-	// pthread_mutex_lock(&mutex_lock); // section start
 	char pathname[BUF_SIZE]; // 합성할 path이름
 	strcpy(pathname, dir_path);
 	strcat(pathname, "/"); // 처음에 / 제거하고 시작하므로 붙여줌
@@ -235,7 +220,6 @@ void *find_file(void *p){
 			push_queue(tr->q, pathname); // 찾은 디렉토리경로 큐 추가
         }
     }
-	// pthread_mutex_unlock(&mutex_lock); // section end
 
 	for(int i = 0; i < cnt; i++){
 		free(filelist[i]);
