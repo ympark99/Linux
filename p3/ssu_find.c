@@ -34,7 +34,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		exit(0);
 	}
 	pthread_join(p_thread[0], (void **)&status); // 쓰레드 종료시까지 대기
-	
+	pthread_mutex_init(&mutex_lock, NULL);
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
 		int cnt = 0;
@@ -54,7 +54,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			th[i].q = q;
 			th[i].dt = dt;
 			qnow_cnt++;
-			pthread_mutex_init(&mutex_lock, NULL);
 			thr_id = pthread_create(&p_thread[i], NULL, find_file, (void *)&th[i]); // 쓰레드 생성 후 함수 호출
 			if (thr_id < 0){
 				fprintf(stderr, "thread create error\n");
@@ -63,10 +62,12 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		}
 
 		for(int i = 0; i < thread_num; i++){
+			printf("before join %d\n", i+1);
 			pthread_join(p_thread[i], (void **)&status); // 쓰레드 종료시까지 대기
+			printf("after join %d\n", i+1);
 		}
-		pthread_mutex_destroy(&mutex_lock);
 	}
+	pthread_mutex_destroy(&mutex_lock);
 	fclose(dt); // w모드 종료
 	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
 	if(dt == NULL) fprintf(stderr, "fopen read error\n");
@@ -102,7 +103,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 // 디렉토리에서 조건 맞는 파일 txt에 추가
 void *find_file(void *p){
 	pthread_mutex_lock(&mutex_lock); // section start
-	printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
+//	printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
 	Thread *tr = (Thread *)p;
 
     int digest_len = tr->is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
