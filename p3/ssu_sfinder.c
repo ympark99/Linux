@@ -22,7 +22,6 @@ int main(){
 		while(oper[0] == ' '){
 			memmove(oper, oper + 1, strlen(oper));
 		}
-		
 		char *splitOper[FIRST_OPER_LEN] = {NULL, }; // 명령어 split
 		char *ptr = strtok(oper, " "); // 공백 기준으로 문자열 자르기
 
@@ -52,15 +51,14 @@ int main(){
 				char dir_path[BUF_SIZE]; // 저장할 디렉토리 경로
 				char *pos = NULL; // 실수 계산시 저장할 포인터
 				int thread_num = 1; // 쓰레드 개수
-
 				for(int i = 0; i < FIRST_OPER_LEN; i++){
 					if(splitOper[i] == NULL) break;
 					split_cnt++;
 				}
-
 				bool go_next = true; // 에러 있는지 확인
 				int input_opt[5] = {0, }; // 필수 옵션 모두 입력했는지 확인 (-e, -l, -h, -d, -t)
-
+				char home_dir[BUF_SIZE];
+				bool is_home = false;
 				// getopt로 옵션 분리 및 검사
 				while((option_opt = getopt(split_cnt, splitOper, "e:l:h:d:t:")) != -1){
 					if(!go_next) break;
@@ -148,27 +146,28 @@ int main(){
 						case 'd' : 
 							// 파일경로에 ~입력시 홈디렉토리로 바꿈
 							if(optarg[0] == '~'){
+								is_home = true;
 								struct passwd *pwd;
 								if((pwd = getpwuid(getuid())) == NULL){ // 사용자 아이디, 홈 디렉토리 경로 얻기
 									fprintf(stderr, "user id error");
 									go_next = false;
 									break;
 								}
-								memmove(optarg, optarg + 1, strlen(optarg)); // 맨 처음 ~ 제거
+								strcpy(home_dir, optarg);
+								memmove(home_dir, home_dir + 1, strlen(home_dir)); // 맨 처음 ~ 제거
 								char *str = malloc(sizeof(char) * BUF_SIZE); // 임시로 저장해둘 문자열
-								strcpy(str, optarg);
-								sprintf(optarg, "%s%s", pwd->pw_dir, str); // 홈디렉토리/하위경로로 합쳐줌
+								strcpy(str, home_dir);
+								sprintf(home_dir, "%s%s", pwd->pw_dir, str); // 홈디렉토리/하위경로로 합쳐줌
 								free(str);
 							}
-
-							int fileOrDir = check_fileOrDir(optarg); // 파일 or 디렉토리인지 체크
+							int fileOrDir = is_home ? check_fileOrDir(home_dir) : check_fileOrDir(optarg); // 파일 or 디렉토리인지 체크
 							// TARGET_DIRECTORY 검사 (디렉토리 아닌경우)
 							if(fileOrDir != 2){
 								fprintf(stderr, "디렉토리가 아님\n");
 								go_next = false;
 								break;
 							}								
-							strcpy(dir_path, optarg);
+							is_home ? strcpy(dir_path, home_dir) : strcpy(dir_path, optarg);
 							input_opt[3]++;
 							break;
 						case 't' : 
@@ -186,7 +185,7 @@ int main(){
 								break;
 							}
 							input_opt[4]++;
-							break;												
+							break;									
 						default :
 							fprintf(stderr, "잘못된 입력\n");
 							go_next = false;
@@ -232,6 +231,7 @@ int main(){
 					}
 					struct timeval start;
 					gettimeofday(&start, NULL);
+					printf("thread : %d\n", thread_num);
 					!strcmp(splitOper[0], "fmd5") ?
 						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, dt)
 						:
@@ -257,7 +257,6 @@ int main(){
 				bool c_opt[5] = {false, true, false, false, false }; // c 옵션 카테고리(filename, size, uid, gid, mode)
 				bool sort_up = true; // 오름차순 정렬할지 결정
 				int input_opt[3] = {0, }; // 옵션 중복 입력 (-l, -c, -o)
-
 				// getopt로 옵션 분리 및 검사
 				while((option_opt = getopt(split_cnt, splitOper, "l:c:o:")) != -1){
 					if(!go_next) break;
@@ -303,7 +302,7 @@ int main(){
 							}
 							input_opt[1]++;
 							break;
-						case 'o' :						
+						case 'o' :	
 							if(optarg == NULL) sort_up = true;
 							else if(!strcmp(optarg, "1")) sort_up = true;
 							else if(!strcmp(optarg, "-1")) sort_up = false;
@@ -354,12 +353,11 @@ int main(){
 				bool c_opt[5] = {true, false, false, false, false}; // c 옵션 카테고리(파일이름, 절대경로, size, date, time)
 				bool sort_up = true; // 오름차순 정렬할지 결정
 				int input_opt[2] = {0, }; // 옵션 중복 입력 (-c, -o)
-
 				// getopt로 옵션 분리 및 검사
 				while((option_opt = getopt(split_cnt, splitOper, "c:o:")) != -1){
 					if(!go_next) break;
 					switch(option_opt){
-						case 'c' :					
+						case 'c' :			
 							if(optarg == NULL) c_opt[0] = true;
 							else{				
 								if(!strcmp(optarg, "filename")){
@@ -386,7 +384,7 @@ int main(){
 							}
 							input_opt[0]++;
 							break;
-						case 'o' :						
+						case 'o' :
 							if(optarg == NULL) sort_up = true;
 							else if(!strcmp(optarg, "1")) sort_up = true;
 							else if(!strcmp(optarg, "-1")) sort_up = false;
@@ -454,8 +452,6 @@ int main(){
 		}
 		free(oper);
 	}
-	// delete_set(head); // 세트 제거
-	// delete_trash(trhead); // 쓰레기통 제거
 	fprintf(stdout, "Prompt End\n");
 	exit(0);
 }

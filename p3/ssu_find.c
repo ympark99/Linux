@@ -1,5 +1,9 @@
 #include "ssu_find.h"
-
+int q_cnt = 0;
+int qnow_cnt = 0;
+int same_cnt = 0;
+int set_cnt = 0;
+int file_cnt = 0;
 // md5, sha1 관련 함수 실행
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt){
 	pthread_t p_thread[5]; // bfs 돌릴 쓰레드
@@ -12,7 +16,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	}
 
 	int thr_id;
-	int status;
+	long double status;
 	Thread th; // 쓰레드에 넘길 구조체 생성
 
 	th.is_md5 = is_md5;
@@ -40,7 +44,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			}
 			cnt++;
 			int thr_id;
-			int status;
+			long double status;
 			// Thread th; // 쓰레드에 넘길 구조체 생성
 			th[i].is_md5 = is_md5;
 			strcpy(th[i].extension, extension);
@@ -49,7 +53,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			strcpy(th[i].find_path, pop_queue(q));
 			th[i].q = q;
 			th[i].dt = dt;
-
+			qnow_cnt++;
 			thr_id = pthread_create(&p_thread[i], NULL, find_file, (void *)&th[i]); // 쓰레드 생성 후 함수 호출
 			if (thr_id < 0){
 				fprintf(stderr, "thread create error\n");
@@ -57,8 +61,10 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			}
 		}
 
-		for(int i = 0; i < cnt; i++){
+		for(int i = 0; i < thread_num; i++){
+			// printf("%d before join\n", i);
 			pthread_join(p_thread[i], (void **)&status); // 쓰레드 종료시까지 대기
+			// printf("%d after join\n", i);
 		}
 	}
 	fclose(dt); // w모드 종료
@@ -95,6 +101,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 
 // 디렉토리에서 조건 맞는 파일 txt에 추가
 void *find_file(void *p){
+	// printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
 	Thread *tr = (Thread *)p;
 
     int digest_len = tr->is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
@@ -182,6 +189,7 @@ void *find_file(void *p){
 
 			// 파일에 저장
 			if(tr->dt != NULL){
+				file_cnt++;
 				char to_str[BUF_SIZE];
 				sprintf(to_str, "%lld", (long long)filesize);
 				fputs("*", tr->dt); // 체크 여부
@@ -217,6 +225,7 @@ void *find_file(void *p){
 				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
 					continue;
 			}
+			q_cnt++;
 			push_queue(tr->q, pathname); // 찾은 디렉토리경로 큐 추가
         }
     }
@@ -233,6 +242,8 @@ void file2set(FILE * dt, Set *set){
 	char *cmpline;
 	Set *set_cur = set; // 현재 세트 계산
 	while (!feof(dt)){	
+		same_cnt++;
+		printf("현재 기준 파일 : %d | total %d\n", same_cnt, file_cnt);
 		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
 		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
 		if(line == NULL) break; // 파일 끝인경우 종료
@@ -1077,6 +1088,7 @@ int search_set(Set *set, unsigned char hash[digest_len]){
 void sort_upSet(Set *set, int set_size){
     Set *cur = set->next; // head 다음
     for (int i = 0; i < set_size; i++){
+		printf("sort now : %d | total : %d\n", i++, set_size);
         if(cur->next == NULL) break;
         for (int j = 0; j < set_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)
