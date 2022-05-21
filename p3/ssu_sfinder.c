@@ -231,7 +231,6 @@ int main(){
 					}
 					struct timeval start;
 					gettimeofday(&start, NULL);
-					printf("thread : %d\n", thread_num);
 					!strcmp(splitOper[0], "fmd5") ?
 						ssu_find(true, extension, min_byte, max_byte, dir_path, thread_num, start, head, only, &q, dt)
 						:

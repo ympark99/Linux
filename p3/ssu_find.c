@@ -4,6 +4,7 @@ int qnow_cnt = 0;
 int same_cnt = 0;
 int set_cnt = 0;
 int file_cnt = 0;
+pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 // md5, sha1 관련 함수 실행
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt){
 	pthread_t p_thread[5]; // bfs 돌릴 쓰레드
@@ -26,7 +27,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	strcpy(th.find_path, find_path);
 	th.q = q;
 	th.dt = dt;
-
+	pthread_mutex_init(&mutex_lock, NULL);
 	thr_id = pthread_create(&p_thread[0], NULL, find_file, (void *)&th); // 최초 디렉토리 한개 탐색
 	if (thr_id < 0){
 		fprintf(stderr, "thread create error\n");
@@ -45,7 +46,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			cnt++;
 			int thr_id;
 			long double status;
-			// Thread th; // 쓰레드에 넘길 구조체 생성
 			th[i].is_md5 = is_md5;
 			strcpy(th[i].extension, extension);
 			th[i].min_byte = min_byte;
@@ -54,6 +54,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			th[i].q = q;
 			th[i].dt = dt;
 			qnow_cnt++;
+			pthread_mutex_init(&mutex_lock, NULL);
 			thr_id = pthread_create(&p_thread[i], NULL, find_file, (void *)&th[i]); // 쓰레드 생성 후 함수 호출
 			if (thr_id < 0){
 				fprintf(stderr, "thread create error\n");
@@ -62,10 +63,9 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		}
 
 		for(int i = 0; i < thread_num; i++){
-			// printf("%d before join\n", i);
 			pthread_join(p_thread[i], (void **)&status); // 쓰레드 종료시까지 대기
-			// printf("%d after join\n", i);
 		}
+		pthread_mutex_destroy(&mutex_lock);
 	}
 	fclose(dt); // w모드 종료
 	dt = fopen(".writeReadData.txt", "r+t"); // r+모드 실행 (체크 표시 남겨야 하므로)
@@ -101,25 +101,26 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 
 // 디렉토리에서 조건 맞는 파일 txt에 추가
 void *find_file(void *p){
-	// printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
+	pthread_mutex_lock(&mutex_lock); // section start
+	printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
 	Thread *tr = (Thread *)p;
 
     int digest_len = tr->is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
 	struct dirent **filelist; // scandir 파일목록 저장 구조체
 	int cnt; // return 값
+
     // scandir로 파일목록 가져오기 (디렉토리가 아닐 경우 에러)
 	if((cnt = scandir(tr->find_path, &filelist, scandirFilter, alphasort)) == -1){
 		fprintf(stderr, "%s error, ERROR : %s\n", tr->find_path, strerror(errno));
 		return (void *)-1;
 	}
-
 	// 절대경로 변환
 	char dir_path[BUF_SIZE];
 	if(realpath(tr->find_path, dir_path) == NULL){
 		fprintf(stderr, "realpath error : %s\n", strerror(errno));
 		return (void *)-1;
 	}
-	
+
 	char pathname[BUF_SIZE]; // 합성할 path이름
 	strcpy(pathname, dir_path);
 	strcat(pathname, "/"); // 처음에 / 제거하고 시작하므로 붙여줌
@@ -229,11 +230,11 @@ void *find_file(void *p){
 			push_queue(tr->q, pathname); // 찾은 디렉토리경로 큐 추가
         }
     }
-
 	for(int i = 0; i < cnt; i++){
 		free(filelist[i]);
 	}
 	free(filelist);
+	pthread_mutex_unlock(&mutex_lock); // section end
 }
 
 // 중복파일 리스트에 추가 (체크한 파일 : **, 체크 x : *)
