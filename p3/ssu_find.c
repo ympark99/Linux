@@ -752,36 +752,6 @@ void delete_t(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx){
 	if(get_setLen(set)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
 }
 
-// 추가기능 : a옵션
-// [LIST_IDX] a : 세트의 해당번째 인덱스 모두 삭제
-// 해당 인덱스 없을 경우 삭제 x
-void option_a(int list_idx, Node *list){
-	// Node *cur = list->next;
-	// Node *pre = list; // 삭제 시 cur 위치 복구해줄 포인터
-
-	// // 세트 같을때까지 탐색
-	// while (cur != NULL){
-	// 	if(cur->idx_num == list_idx){ // 인덱스 같으면 삭제
-	// 		//파일 삭제
-	// 		if(unlink(cur->path) == -1){
-	// 			fprintf(stderr, "%s delete error", cur->path);
-	// 			return;
-	// 		}
-	// 		else{
-	// 			del_node(list, cur->set_num, cur->idx_num); // 노드 삭제
-	// 			cur = pre->next;
-	// 		}
-	// 	}
-	// 	else{
-	// 		pre = cur;
-	// 		cur = cur->next;
-	// 	}
-	// }
-	// del_onlyList(list); // 하나 남은 경우 삭제
-	// print_list(list); // 프린트
-	// if(get_listLen(list)) fprintf(stdout, "\n"); // 학번 프롬프트 출력 시 \n x
-}
-
 // scandir 필터(. 과 .. 제거)
 int scandirFilter(const struct dirent *info){
 	if(strcmp(info->d_name, ".") == 0 || strcmp(info->d_name, "..") == 0){
@@ -1108,7 +1078,7 @@ int search_set(Set *set, unsigned char hash[digest_len]){
 void sort_upSet(Set *set, int set_size){
     Set *cur = set->next; // head 다음
     for (int i = 0; i < set_size; i++){
-		printf("sort now : %d | total : %d\n", i++, set_size);
+		printf("sort now : %d | total : %d\n", i+1, set_size);
         if(cur->next == NULL) break;
         for (int j = 0; j < set_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)

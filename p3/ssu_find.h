@@ -141,8 +141,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 void *find_file(void *p);
 void file2set(FILE * dt, Set *list);
 
-void option_a(int list_idx, Node *list); // 추가기능
-
 int scandirFilter(const struct dirent *info);
 int check_fileOrDir(char *path);
 char *get_md5(FILE *fp);
