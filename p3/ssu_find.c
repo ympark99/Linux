@@ -20,10 +20,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		return;
 	}
 
-	int thr_id;
-	long double status;
 	Thread th; // 쓰레드에 넘길 구조체 생성
-
 	th.is_md5 = is_md5;
 	strcpy(th.extension, extension);
 	th.min_byte = min_byte;
@@ -33,12 +30,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	th.dt = dt;
 	pthread_mutex_init(&mutex_lock, NULL);
 	find_file((void *)&th); // 메인 쓰레드로 최초 디렉토리 한개 탐색
-
-	if (thr_id < 0){
-		fprintf(stderr, "thread create error\n");
-		exit(0);
-	}
-	pthread_join(p_thread[0], (void **)&status); // 쓰레드 종료시까지 대기
 	pthread_mutex_init(&mutex_lock, NULL);
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
@@ -51,7 +42,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			}
 			same_depth++;
 			int thr_id;
-			long double status;
 			th[i].is_md5 = is_md5;
 			strcpy(th[i].extension, extension);
 			th[i].min_byte = min_byte;
@@ -69,6 +59,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 		}
 		// 쓰레드 종료 대기, 쓰레드 시간 측정
 		for(int i = 0; i < same_depth; i++){
+			long double status;
 			pthread_join(p_thread[i], (void **)&status); // 쓰레드 종료시까지 대기
 			gettimeofday(&p_end[i], NULL); // 각 쓰레드별 시작 시간
 
