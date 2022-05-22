@@ -5,9 +5,13 @@ int same_cnt = 0;
 int set_cnt = 0;
 int file_cnt = 0;
 pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
+
 // md5, sha1 관련 함수 실행
 void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long double max_byte, char find_path[BUF_SIZE], int thread_num, struct timeval start, Set *set, Set *only, queue *q, FILE *dt){
 	pthread_t p_thread[5]; // bfs 돌릴 쓰레드
+	struct timeval p_start[5], p_end[5];
+	struct timeval p_final[5] = {0, };
+	bool use_thread = false;
 
 	// 절대경로 변환
 	char dir_path[BUF_SIZE];
@@ -38,13 +42,14 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	pthread_mutex_init(&mutex_lock, NULL);
 	// 큐 빌때까지 bfs탐색(bfs이므로 절대경로, 아스키 순서로 정렬되어있음)
 	while (!isEmpty_queue(q)){
-		int cnt = 0;
+		use_thread = true;
+		int same_depth = 0; // 같은 depth에 있는 쓰레드 개수
 		Thread th[5]; // 쓰레드에 넘길 구조체 생성		
 		for(int i = 0; i < thread_num; i++){ // 입력한 개수만큼 쓰레드 생성 -> 재귀
 			if(isEmpty_queue(q)){ // 큐가 없으면 생성x
 				break;
 			}
-			cnt++;
+			same_depth++;
 			int thr_id;
 			long double status;
 			th[i].is_md5 = is_md5;
@@ -55,17 +60,33 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			th[i].q = q;
 			th[i].dt = dt;
 			qnow_cnt++;
+			gettimeofday(&p_start[i], NULL); // 각 쓰레드별 시작 시간
 			thr_id = pthread_create(&p_thread[i], NULL, find_file, (void *)&th[i]); // 쓰레드 생성 후 함수 호출
 			if (thr_id < 0){
 				fprintf(stderr, "thread create error\n");
 				exit(0);
 			}
 		}
-
-		for(int i = 0; i < thread_num; i++){
-			printf("before join %d\n", i+1);
+		// 쓰레드 종료 대기, 쓰레드 시간 측정
+		for(int i = 0; i < same_depth; i++){
 			pthread_join(p_thread[i], (void **)&status); // 쓰레드 종료시까지 대기
-			printf("after join %d\n", i+1);
+			gettimeofday(&p_end[i], NULL); // 각 쓰레드별 시작 시간
+
+			p_end[i].tv_sec -= p_start[i].tv_sec; // 초 부분 계산
+
+			if(p_end[i].tv_usec < p_start[i].tv_usec){ // ms 연산 결과가 마이너스인 경우 고려
+				p_end[i].tv_sec--;
+				p_end[i].tv_usec += 1000000;
+			}
+			p_end[i].tv_usec -= p_start[i].tv_usec;
+
+			// 최종 시간에 추가
+			p_final[i].tv_sec += p_end[i].tv_sec;
+			if((p_final[i].tv_usec + p_end[i].tv_usec) > 1000000){
+				p_final[i].tv_sec++;
+				p_final[i].tv_usec -= 1000000;
+			}
+			p_final[i].tv_usec += p_end[i].tv_usec;
 		}
 	}
 	pthread_mutex_destroy(&mutex_lock);
@@ -80,7 +101,7 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	if(unlink(".writeReadData.txt") == -1)
 		fprintf(stderr, "writeReadData delete error\n");
 
-	struct timeval end; 
+	struct timeval end;
 	gettimeofday(&end, NULL); // 종료 시간 측정
 
 	int set_size = get_setLen(set);
@@ -98,13 +119,18 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	sort_upSet(set, set_size);
 	print_set(set); // 세트 출력
 	get_searchtime(start, end); // 탐색 시간 출력
+	if(use_thread){ // 쓰레드 사용 시 쓰레드별 시간 출력
+		for(int i = 0; i < thread_num; i++)
+			fprintf(stdout, "Thread %d takes: %ld:%06ld(sec:usec)\n", i+1, p_final[i].tv_sec, p_final[i].tv_usec);
+	}
+	else fprintf(stdout, "Thread not used\n");
 	delete(set, only);
 }
 
 // 디렉토리에서 조건 맞는 파일 txt에 추가
 void *find_file(void *p){
 	pthread_mutex_lock(&mutex_lock); // section start
-//	printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
+	printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
 	Thread *tr = (Thread *)p;
 
     int digest_len = tr->is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
@@ -245,8 +271,7 @@ void file2set(FILE * dt, Set *set){
 	char *cmpline;
 	Set *set_cur = set; // 현재 세트 계산
 	while (!feof(dt)){	
-		same_cnt++;
-		printf("현재 기준 파일 : %d | total %d\n", same_cnt, file_cnt);
+		printf("체크 완료 파일 : %d | total %d\n", same_cnt, file_cnt);
 		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
 		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
 		if(line == NULL) break; // 파일 끝인경우 종료
@@ -261,7 +286,7 @@ void file2set(FILE * dt, Set *set){
 		if(!strcmp(splitFile[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
 		int now_ftell = ftell(dt); // 돌아갈 위치 저장
 		bool is_first = true; // 기준 파일 추가해줘야 하는지
-
+		same_cnt++;
 		// 중복 파일 있는지 체크
 		while (!feof(dt)){
 			int cmp_ftell = ftell(dt); // 체크 표시 위해 위치 저장
@@ -299,6 +324,7 @@ void file2set(FILE * dt, Set *set){
 				int gid = atoi(splitFile[7]);
 				int mode = atoi(splitFile[8]);
 				append_node(set_cur->nodeList, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5], uid, gid, mode); // 리스트에 추가
+				same_cnt++;
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
 				fputs("**|", dt); // **으로 체크 표시
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
