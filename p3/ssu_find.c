@@ -28,7 +28,8 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 	th.q = q;
 	th.dt = dt;
 	pthread_mutex_init(&mutex_lock, NULL);
-	thr_id = pthread_create(&p_thread[0], NULL, find_file, (void *)&th); // 최초 디렉토리 한개 탐색
+	find_file((void *)&th); // 메인 쓰레드로 최초 디렉토리 한개 탐색
+
 	if (thr_id < 0){
 		fprintf(stderr, "thread create error\n");
 		exit(0);
