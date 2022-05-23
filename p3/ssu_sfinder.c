@@ -1,5 +1,5 @@
 #include "ssu_find.h"
-// todo : 옵션 입력 에러처리 ex : list list list, root에서 테스트
+
 int main(){
 	// 링크드리스트 head 선언
 	Set *head = malloc(sizeof(Set));
@@ -171,7 +171,6 @@ int main(){
 							input_opt[3]++;
 							break;
 						case 't' : 
-							// todo : 쓰레드 시간 측정
 							// 두자리 이상 입력한 경우 에러
 							if(strlen(optarg) != 1){
 								fprintf(stderr, "잘못된 쓰레드 개수 입력\n");
