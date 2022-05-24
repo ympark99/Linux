@@ -1,9 +1,4 @@
 #include "ssu_find.h"
-int q_cnt = 0;
-int qnow_cnt = 0;
-int same_cnt = 0;
-int set_cnt = 0;
-int file_cnt = 0;
 pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // md5, sha1 관련 함수 실행
@@ -49,7 +44,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 			strcpy(th[i].find_path, pop_queue(q));
 			th[i].q = q;
 			th[i].dt = dt;
-			qnow_cnt++;
 			gettimeofday(&p_start[i], NULL); // 각 쓰레드별 시작 시간
 			thr_id = pthread_create(&p_thread[i], NULL, find_file, (void *)&th[i]); // 쓰레드 생성 후 함수 호출
 			if (thr_id < 0){
@@ -121,7 +115,6 @@ void ssu_find(bool is_md5, char extension[BUF_SIZE], long double min_byte, long 
 // 디렉토리에서 조건 맞는 파일 txt에 추가
 void *find_file(void *p){
 	pthread_mutex_lock(&mutex_lock); // section start
-	printf("q total : %d, now : %d\n", q_cnt, qnow_cnt);
 	Thread *tr = (Thread *)p;
 
     int digest_len = tr->is_md5? MD5_DIGEST_LENGTH : SHA_DIGEST_LENGTH; // md5, sha1 구분
@@ -174,7 +167,7 @@ void *find_file(void *p){
 			if(lstat(pathname, &st) == -1){			
 				// 파일 읽기 권한 없으면 패스
 				if(!st.st_mode & S_IRWXU) continue;
-				fprintf(stderr, "stat error : %s\n", strerror(errno));
+				// fprintf(stderr, "stat error : %s\n", strerror(errno));
 				continue;	
 			}
 			long double filesize = (long double) st.st_size; // 파일크기 구하기
@@ -209,7 +202,6 @@ void *find_file(void *p){
 
 			// 파일에 저장
 			if(tr->dt != NULL){
-				file_cnt++;
 				char to_str[BUF_SIZE];
 				sprintf(to_str, "%lld", (long long)filesize);
 				fputs("*", tr->dt); // 체크 여부
@@ -245,7 +237,6 @@ void *find_file(void *p){
 				if((!strcmp(filelist[i]->d_name, "proc") || !strcmp(filelist[i]->d_name, "run")) || !strcmp(filelist[i]->d_name, "sys"))
 					continue;
 			}
-			q_cnt++;
 			push_queue(tr->q, pathname); // 찾은 디렉토리경로 큐 추가
         }
     }
@@ -261,8 +252,7 @@ void file2set(FILE * dt, Set *set){
 	char *line;
 	char *cmpline;
 	Set *set_cur = set; // 현재 세트 계산
-	while (!feof(dt)){	
-		printf("체크 완료 파일 : %d | total %d\n", same_cnt, file_cnt);
+	while (!feof(dt)){
 		char buf[BUF_SIZE * FILEDATA_SIZE]; // 한 라인 읽기
 		line = fgets(buf, BUF_SIZE * FILEDATA_SIZE, dt);
 		if(line == NULL) break; // 파일 끝인경우 종료
@@ -277,7 +267,6 @@ void file2set(FILE * dt, Set *set){
 		if(!strcmp(splitFile[0], "**")) continue; // 이미 중복 체크 됐다면, 패스
 		int now_ftell = ftell(dt); // 돌아갈 위치 저장
 		bool is_first = true; // 기준 파일 추가해줘야 하는지
-		same_cnt++;
 		// 중복 파일 있는지 체크
 		while (!feof(dt)){
 			int cmp_ftell = ftell(dt); // 체크 표시 위해 위치 저장
@@ -315,7 +304,6 @@ void file2set(FILE * dt, Set *set){
 				int gid = atoi(splitFile[7]);
 				int mode = atoi(splitFile[8]);
 				append_node(set_cur->nodeList, filesize, cmp_split[2], cmp_split[3], cmp_split[4], cmp_split[5], uid, gid, mode); // 리스트에 추가
-				same_cnt++;
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
 				fputs("**|", dt); // **으로 체크 표시
 				fseek(dt, cmp_ftell, SEEK_SET); // 체크 위치로 이동
@@ -504,7 +492,7 @@ void delete_d(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx, int 
 
 		del_node(list_cur, list_pre, 1); // 해당 노드 연결 리스트에서 삭제
 
-		// 하나만 남은 경우 only로 이동
+		// 하나만 남은 경우 제거
 		if(get_listLen(set_cur->nodeList) == 1){
 			del_set(set_cur, set_pre);
 		}
@@ -556,7 +544,7 @@ void delete_i(Set *set, Set* only, Set *set_cur, Set *set_pre){
 	}
 	fprintf(stdout, "\n");
 
-	// 하나만 남은 경우 only로 이동
+	// 하나만 남은 경우 제거
 	if(get_listLen(set_cur->nodeList) == 1){
 		del_set(set_cur, set_pre);
 	}
@@ -593,7 +581,7 @@ void delete_f(Set *set, Set* only, Set *set_cur, Set *set_pre, int set_idx){
 	}
 	fprintf(stdout, "Left file in #%d : %s (%-15s)\n\n", set_idx, recent->path, recent->mtime);
 
-	// 하나만 남은 경우 only로 이동
+	// 하나만 남은 경우 제거
 	if(get_listLen(set_cur->nodeList) == 1){
 		del_set(set_cur, set_pre);
 	}
@@ -1078,7 +1066,6 @@ int search_set(Set *set, unsigned char hash[digest_len]){
 void sort_upSet(Set *set, int set_size){
     Set *cur = set->next; // head 다음
     for (int i = 0; i < set_size; i++){
-		printf("sort now : %d | total : %d\n", i+1, set_size);
         if(cur->next == NULL) break;
         for (int j = 0; j < set_size - 1 - i; j++){
             if(cur->filesize > cur->next->filesize)
